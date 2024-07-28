@@ -86,6 +86,9 @@ next:
 	CMP	CH,CYLS
 	JB	readloop
 
+	; execute haribote.sys
+	JMP	0xc200
+
 putloop:
 	MOV	AL,[SI]
 	ADD	SI,1

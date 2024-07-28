@@ -1,17 +1,19 @@
-ASM := ipl.asm
-IMG := ipl.bin
-LST := ipl.lst
-
-
 all: run
 
-$(IMG): $(ASM)
-	nasm $< -o $@ -l $(LST)
+haribote.sys: haribote.asm
+	nasm $< -o $@
+
+ipl.bin: ipl.asm
+	nasm $< -o $@ -l ipl.lst
+
+haribote.img: ipl.bin haribote.sys
+	mformat -f 1440 -C -B ipl.bin -i $@
+	mcopy -i $@ haribote.sys ::
 
 .PHONY: run
-run: $(IMG)
-	qemu-system-i386 $<
+run: haribote.img
+	qemu-system-i386 -fda $<
 
 .PHONY: clean
 clean:
-	rm $(IMG)
+	rm ipl.bin haribote.sys haribote.img
