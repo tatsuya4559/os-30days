@@ -1,16 +1,11 @@
-ASM := helloos.asm
-IMG := helloos.img
-
 all: run
-build: $(IMG)
+
+ipl.bin: ipl.asm
+	nasm $< -o $@ -l ipl.lst
 
 .PHONY: run
-run: $(IMG)
-	# qemu-system-x86_64 -hda $(IMG)
-	qemu-system-i386 $(IMG)
-
-$(IMG): $(ASM)
-	nasm $(ASM) -o $(IMG)
+run: ipl.bin
+	qemu-system-i386 $<
 
 .PHONY: clean
 clean:
