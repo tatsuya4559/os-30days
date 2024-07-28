@@ -1,10 +1,15 @@
+ASM := ipl.asm
+IMG := ipl.bin
+LST := ipl.lst
+
+
 all: run
 
-ipl.bin: ipl.asm
-	nasm $< -o $@ -l ipl.lst
+$(IMG): $(ASM)
+	nasm $< -o $@ -l $(LST)
 
 .PHONY: run
-run: ipl.bin
+run: $(IMG)
 	qemu-system-i386 $<
 
 .PHONY: clean
