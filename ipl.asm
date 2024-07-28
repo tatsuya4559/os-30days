@@ -1,13 +1,17 @@
 ; hello-os
 ; vim: tabstop=8 noexpandtab
 
+;; CONSTANTS
+; how much cylinders to load
+CYLS	EQU	10
+
 ; address to where program loaded
 ORG	0x7c00
 
 JMP	entry
 DB	0x90
 
-; FORMAT
+;; FORMAT
 DB     "HELLOIPL"
 DW     512
 DB     1
@@ -28,7 +32,7 @@ DB     "FAT12   "
 TIMES  18      DB      0
 
 
-; BODY
+;; BODY
 entry:
 	MOV	AX,0
 	MOV	SS,AX
@@ -38,8 +42,8 @@ entry:
 	; Load disk
 	MOV	AX,0x0820
 	MOV	ES,AX
-	MOV	DH,0	; at head 0
 	MOV	CH,0	; at cylinder 0
+	MOV	DH,0	; at head 0
 	MOV	CL,2	; at sector 2
 
 readloop:
@@ -62,12 +66,25 @@ retry:
 	JMP	retry
 
 next:
+	; advance 0x020 address
+	; 0x20 = 512byte(=1 sector)/16
 	MOV	AX,ES
-	ADD	AX,0x020	; 0x20 = 512byte(=1 sector)/16
+	ADD	AX,0x020
 	MOV	ES,AX
+	; next sector
 	ADD	CL,1
 	CMP	CL,18
 	JBE	readloop
+	MOV	CL,1
+	; oposite side head
+	ADD	DH,1
+	CMP	DH,2
+	JB	readloop
+	MOV	DH,0
+	; next cylinder
+	ADD	CH,1
+	CMP	CH,CYLS
+	JB	readloop
 
 putloop:
 	MOV	AL,[SI]
