@@ -34,9 +34,21 @@ entry:
 	MOV	SS,AX
 	MOV	SP,0x7c00
 	MOV	DS,AX
-	MOV	ES,AX
 
-	MOV	SI,msg
+	; Load disk
+	MOV	AX,0x0820
+	MOV	ES,AX
+	MOV	DH,0	; at head 0
+	MOV	CH,0	; at cylinder 0
+	MOV	CL,2	; at sector 2
+
+	MOV	AH,0x02	; load disk
+	MOV	AL,1	; for 1 sector
+	MOV	BX,0	; into this address
+	MOV	DL,0x00	; from drive 0
+	INT	0x13	; invoke BIOS function: load disk
+	JC	error
+
 putloop:
 	MOV	AL,[SI]
 	ADD	SI,1
@@ -46,9 +58,14 @@ putloop:
 	MOV	BX,15	; color code
 	INT	0x10	; invoke BIOS function
 	JMP	putloop
+
 fin:
 	HLT
 	JMP	fin
+
+error:
+	MOV	SI,msg
+
 msg:
 	DB	0x0a,0x0a
 	DB	"hello, world"
