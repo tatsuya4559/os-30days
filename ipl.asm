@@ -87,6 +87,7 @@ next:
 	JB	readloop
 
 	; execute haribote.sys
+	MOV	[0x0ff0],CH
 	JMP	0xc200
 
 putloop:
