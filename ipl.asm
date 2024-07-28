@@ -42,12 +42,23 @@ entry:
 	MOV	CH,0	; at cylinder 0
 	MOV	CL,2	; at sector 2
 
+	MOV	SI,0	; retry counter
+
+retry:
 	MOV	AH,0x02	; load disk
 	MOV	AL,1	; for 1 sector
 	MOV	BX,0	; into this address
 	MOV	DL,0x00	; from drive 0
 	INT	0x13	; invoke BIOS function: load disk
-	JC	error
+	JNC	fin
+	ADD	SI,1
+	CMP	SI,5
+	JAE	error
+	; Reset drive
+	MOV	AH,0x00
+	MOV	DL,0x00
+	INT	0x13
+	JMP	retry
 
 putloop:
 	MOV	AL,[SI]
