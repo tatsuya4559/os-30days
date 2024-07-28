@@ -42,15 +42,16 @@ entry:
 	MOV	CH,0	; at cylinder 0
 	MOV	CL,2	; at sector 2
 
+readloop:
 	MOV	SI,0	; retry counter
 
 retry:
 	MOV	AH,0x02	; load disk
 	MOV	AL,1	; for 1 sector
-	MOV	BX,0	; into this address
+	MOV	BX,0	; into this address (ES*16 + BX)
 	MOV	DL,0x00	; from drive 0
 	INT	0x13	; invoke BIOS function: load disk
-	JNC	fin
+	JNC	next
 	ADD	SI,1
 	CMP	SI,5
 	JAE	error
@@ -59,6 +60,14 @@ retry:
 	MOV	DL,0x00
 	INT	0x13
 	JMP	retry
+
+next:
+	MOV	AX,ES
+	ADD	AX,0x020	; 0x20 = 512byte(=1 sector)/16
+	MOV	ES,AX
+	ADD	CL,1
+	CMP	CL,18
+	JBE	readloop
 
 putloop:
 	MOV	AL,[SI]
