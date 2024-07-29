@@ -90,20 +90,6 @@ next:
 	MOV	[0x0ff0],CH
 	JMP	0xc200
 
-putloop:
-	MOV	AL,[SI]
-	ADD	SI,1
-	CMP	AL,0
-	JE	fin
-	MOV	AH,0x0e	; print a char function
-	MOV	BX,15	; color code
-	INT	0x10	; invoke BIOS function
-	JMP	putloop
-
-fin:
-	HLT
-	JMP	fin
-
 error:
 	MOV	SI,msg
 
