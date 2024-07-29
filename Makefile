@@ -1,6 +1,6 @@
 all: run
 
-haribote.sys: haribote.asm
+haribote.sys: asmhead.asm
 	nasm $< -o $@
 
 ipl.bin: ipl.asm
@@ -16,4 +16,4 @@ run: haribote.img
 
 .PHONY: clean
 clean:
-	rm ipl.bin haribote.sys haribote.img
+	rm *.lst *.bin *.sys *.img *.hrb
