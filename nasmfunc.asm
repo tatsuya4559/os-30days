@@ -5,7 +5,6 @@ section .text
 	GLOBAL	_io_in8, _io_in16, _io_in32
 	GLOBAL	_io_out8, _io_out16, _io_out32
 	GLOBAL	_io_load_eflags, _io_store_eflags
-	GLOBAL	_write_mem8
 
 _io_hlt: ; void _io_hlt(void);
 	HLT
@@ -68,10 +67,4 @@ _io_store_eflags: ; void _io_store_eflags(int eflags);
 	MOV	EAX,[ESP+4]
 	PUSH	EAX
 	POPFD
-	RET
-
-_write_mem8: ; void _write_mem8(int addr, int data);
-	MOV	ECX,[ESP+4]	; addr
-	MOV	AL,[ESP+8]	; data
-	MOV	[ECX],AL
 	RET
