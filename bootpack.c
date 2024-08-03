@@ -78,31 +78,36 @@ boxfill8(Byte *vram, int xsize, Byte c, int x0, int y0, int x1, int y1)
     }
 }
 
+typedef struct {
+    Byte cyls, leds, vmode, reserve;
+    short scrnx, scrny;
+    Byte *vram;
+} BootInfo;
+
 void
 hari_main(void)
 {
     init_palette();
 
-    Byte *vram = (Byte *) 0xa0000;
-    int xsize = 320;
-    int ysize = 200;
+    BootInfo *binfo = (BootInfo *) 0x0ff0;
+    Byte *vram = binfo->vram;
 
-    boxfill8(vram, xsize, COL8_008484,  0,         0,          xsize -  1, ysize - 29);
-    boxfill8(vram, xsize, COL8_C6C6C6,  0,         ysize - 28, xsize -  1, ysize - 28);
-    boxfill8(vram, xsize, COL8_FFFFFF,  0,         ysize - 27, xsize -  1, ysize - 27);
-    boxfill8(vram, xsize, COL8_C6C6C6,  0,         ysize - 26, xsize -  1, ysize -  1);
+    boxfill8(vram, binfo->scrnx, COL8_008484, 0, 0, binfo->scrnx - 1, binfo->scrny - 29);
+    boxfill8(vram, binfo->scrnx, COL8_C6C6C6, 0, binfo->scrny - 28, binfo->scrnx - 1, binfo->scrny - 28);
+    boxfill8(vram, binfo->scrnx, COL8_FFFFFF, 0, binfo->scrny - 27, binfo->scrnx - 1, binfo->scrny - 27);
+    boxfill8(vram, binfo->scrnx, COL8_C6C6C6, 0, binfo->scrny - 26, binfo->scrnx - 1, binfo->scrny - 1);
 
-    boxfill8(vram, xsize, COL8_FFFFFF,  3,         ysize - 24, 59,         ysize - 24);
-    boxfill8(vram, xsize, COL8_FFFFFF,  2,         ysize - 24,  2,         ysize -  4);
-    boxfill8(vram, xsize, COL8_848484,  3,         ysize -  4, 59,         ysize -  4);
-    boxfill8(vram, xsize, COL8_848484, 59,         ysize - 23, 59,         ysize -  5);
-    boxfill8(vram, xsize, COL8_000000,  2,         ysize -  3, 59,         ysize -  3);
-    boxfill8(vram, xsize, COL8_000000, 60,         ysize - 24, 60,         ysize -  3);
+    boxfill8(vram, binfo->scrnx, COL8_FFFFFF, 3, binfo->scrny - 24, 59, binfo->scrny - 24);
+    boxfill8(vram, binfo->scrnx, COL8_FFFFFF, 2, binfo->scrny - 24, 2, binfo->scrny - 4);
+    boxfill8(vram, binfo->scrnx, COL8_848484, 3, binfo->scrny - 4, 59, binfo->scrny - 4);
+    boxfill8(vram, binfo->scrnx, COL8_848484, 59, binfo->scrny - 23, 59, binfo->scrny - 5);
+    boxfill8(vram, binfo->scrnx, COL8_000000, 2, binfo->scrny - 3, 59, binfo->scrny - 3);
+    boxfill8(vram, binfo->scrnx, COL8_000000, 60, binfo->scrny - 24, 60, binfo->scrny - 3);
 
-    boxfill8(vram, xsize, COL8_848484, xsize - 47, ysize - 24, xsize -  4, ysize - 24);
-    boxfill8(vram, xsize, COL8_848484, xsize - 47, ysize - 23, xsize - 47, ysize -  4);
-    boxfill8(vram, xsize, COL8_FFFFFF, xsize - 47, ysize -  3, xsize -  4, ysize -  3);
-    boxfill8(vram, xsize, COL8_FFFFFF, xsize -  3, ysize - 24, xsize -  3, ysize -  3);
+    boxfill8(vram, binfo->scrnx, COL8_848484, binfo->scrnx - 47, binfo->scrny - 24, binfo->scrnx - 4, binfo->scrny - 24);
+    boxfill8(vram, binfo->scrnx, COL8_848484, binfo->scrnx - 47, binfo->scrny - 23, binfo->scrnx - 47, binfo->scrny - 4);
+    boxfill8(vram, binfo->scrnx, COL8_FFFFFF, binfo->scrnx - 47, binfo->scrny - 3, binfo->scrnx - 4, binfo->scrny - 3);
+    boxfill8(vram, binfo->scrnx, COL8_FFFFFF, binfo->scrnx - 3, binfo->scrny - 24, binfo->scrnx - 3, binfo->scrny - 3);
 
     for (;;) {
         _io_hlt();
