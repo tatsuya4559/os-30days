@@ -15,6 +15,8 @@
 #define COL8_008484 14
 #define COL8_848484 15
 
+typedef unsigned char Byte;
+
 extern void _io_hlt(void);
 extern void _io_cli(void);
 extern void _io_out8(int port, int data);
@@ -22,7 +24,7 @@ extern int _io_load_eflags(void);
 extern void _io_store_eflags(int eflags);
 
 void
-set_palette(int start, int end, unsigned char *rgb)
+set_palette(int start, int end, Byte *rgb)
 {
     int i, eflags;
     eflags = _io_load_eflags(); // load interrupt flag
@@ -43,7 +45,7 @@ init_palette(void)
 {
     // 普通に初期値を書くと要素数だけ代入文にコンパイルされる
     // 非効率なのでstatic宣言することで一発で初期化できる
-    static unsigned char table_rgb[16 * 3] = {
+    static Byte table_rgb[16 * 3] = {
         0x00, 0x00, 0x00, // 0: black
         0xff, 0x00, 0x00, // 1: light red
         0x00, 0xff, 0x00, // 2: light green
@@ -66,7 +68,7 @@ init_palette(void)
 }
 
 void
-boxfill8(unsigned char *vram, int xsize, unsigned char c, int x0, int y0, int x1, int y1)
+boxfill8(Byte *vram, int xsize, Byte c, int x0, int y0, int x1, int y1)
 {
     int x, y;
     for (y = y0; y <= y1; y++) {
@@ -81,7 +83,7 @@ hari_main(void)
 {
     init_palette();
 
-    unsigned char *vram = (unsigned char *) 0xa0000;
+    Byte *vram = (Byte *) 0xa0000;
 
     boxfill8(vram, 320, COL8_FF0000, 20, 20, 120, 120);
     boxfill8(vram, 320, COL8_00FF00, 70, 50, 170, 150);
