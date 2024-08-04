@@ -1,3 +1,5 @@
+#include "font.h"
+
 #define COL8_000000 0
 #define COL8_FF0000 1
 #define COL8_00FF00 2
@@ -85,6 +87,24 @@ typedef struct {
 } BootInfo;
 
 void
+putfont8(Byte *vram, int xsize, int x, int y, Byte c, Byte *font)
+{
+    Byte *p, d;
+    for (int i = 0; i < 16; i++) {
+        p = vram + (y + i) * xsize + x;
+        d = font[i];
+        if ((d & 0x80) != 0) { p[0] = c; }
+        if ((d & 0x40) != 0) { p[1] = c; }
+        if ((d & 0x20) != 0) { p[2] = c; }
+        if ((d & 0x10) != 0) { p[3] = c; }
+        if ((d & 0x08) != 0) { p[4] = c; }
+        if ((d & 0x04) != 0) { p[5] = c; }
+        if ((d & 0x02) != 0) { p[6] = c; }
+        if ((d & 0x01) != 0) { p[7] = c; }
+    }
+}
+
+void
 hari_main(void)
 {
     init_palette();
@@ -108,6 +128,8 @@ hari_main(void)
     boxfill8(vram, binfo->scrnx, COL8_848484, binfo->scrnx - 47, binfo->scrny - 23, binfo->scrnx - 47, binfo->scrny - 4);
     boxfill8(vram, binfo->scrnx, COL8_FFFFFF, binfo->scrnx - 47, binfo->scrny - 3, binfo->scrnx - 4, binfo->scrny - 3);
     boxfill8(vram, binfo->scrnx, COL8_FFFFFF, binfo->scrnx - 3, binfo->scrny - 24, binfo->scrnx - 3, binfo->scrny - 3);
+
+    putfont8(vram, binfo->scrnx, 40, 40, COL8_FFFFFF, fonts['B']);
 
     for (;;) {
         _io_hlt();

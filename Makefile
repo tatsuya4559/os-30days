@@ -1,5 +1,8 @@
 all: run
 
+font.h: makefont.py hankaku.txt
+	python makefont.py
+
 asmhead.bin: asmhead.asm
 	nasm $< -o $@
 
@@ -9,7 +12,7 @@ ipl.bin: ipl.asm
 nasmfunc.o: nasmfunc.asm
 	nasm -g -f elf $< -o $@ -l nasmfunc.lst
 
-bootpack.hrb: bootpack.c os.ld nasmfunc.o
+bootpack.hrb: bootpack.c font.h os.ld nasmfunc.o
 	# -march=i486 生成するコードをi486（Intel 80486）アーキテクチャ向けに最適化します。このオプションにより、特定のCPU命令セットを利用し、パフォーマンスを向上させることができます。
 	# -m32 32ビットコードを生成します。これにより、32ビットアーキテクチャ用のバイナリが生成されます。通常、x86プロセッサ向けの32ビットコードを生成するために使用されます。
 	# -fno-pic Position Independent Code（PIC）を生成しないように指示します。PICは共有ライブラリの再配置をサポートするために使用されますが、このオプションにより通常の（位置依存の）コードが生成されます。
