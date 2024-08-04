@@ -71,6 +71,56 @@ init_palette(void)
 }
 
 void
+init_mouse_cursor8(Byte *mouse, Byte background_color)
+{
+    static char cursor[16][16] = {
+        "**************..",
+        "*ooooooooooo*...",
+        "*oooooooooo*....",
+        "*ooooooooo*.....",
+        "*oooooooo*......",
+        "*ooooooo*.......",
+        "*ooooooo*.......",
+        "*oooooooo*......",
+        "*oooo**ooo*.....",
+        "*ooo*..*ooo*....",
+        "*oo*....*ooo*...",
+        "*o*......*ooo*..",
+        "**........*ooo*.",
+        "*..........*ooo*",
+        "............*oo*",
+        ".............***",
+    };
+
+    int x, y;
+    for (y=0; y<16; y++) {
+        for (x=0; x<16; x++) {
+            if (cursor[y][x] == '*') {
+                mouse[y*16 + x] = COLOR_BLACK;
+            }
+            if (cursor[y][x] == 'o') {
+                mouse[y*16 + x] = COLOR_WHITE;
+            }
+            if (cursor[y][x] == '.') {
+                mouse[y*16 + x] = background_color;
+            }
+        }
+    }
+}
+
+void
+putblock8_8(Byte *vram, int vxsize, int pxsize,
+            int pysize, int px0, int py0, Byte *buf, int bxsize)
+{
+    int x, y;
+    for (y=0; y<pysize; y++) {
+        for (x=0; x<pxsize; x++) {
+            vram[(py0 + y) * vxsize + (px0 + x)] = buf[y * bxsize + x];
+        }
+    }
+}
+
+void
 boxfill8(Byte *vram, int xsize, Byte c, int x0, int y0, int x1, int y1)
 {
     int x, y;
@@ -141,9 +191,18 @@ hari_main(void)
 
     putfonts8_asc(vram, binfo->scrnx, 40, 40, COLOR_WHITE, "Hello World!");
 
-    char var_string[20];
-    sprintf(var_string, "scrnx = %d", binfo->scrnx);
-    putfonts8_asc(vram, binfo->scrnx, 40, 80, COLOR_WHITE, var_string);
+    char s[20];
+    sprintf(s, "scrnx = %d", binfo->scrnx);
+    putfonts8_asc(vram, binfo->scrnx, 40, 80, COLOR_WHITE, s);
+
+    int mx, my;
+    Byte mcursor[256];
+    mx = (binfo->scrnx - 16) / 2;
+    my = (binfo->scrny - 28 - 16) / 2;
+    init_mouse_cursor8(mcursor, COLOR_DARK_CYAN);
+    putblock8_8(binfo->vram, binfo->scrnx, 16, 16, mx, my, mcursor, 16);
+    sprintf(s, "(%d, %d)", mx, my);
+    putfonts8_asc(binfo->vram, binfo->scrnx, 0, 0, COLOR_WHITE, s);
 
     for (;;) {
         _io_hlt();
