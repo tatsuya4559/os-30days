@@ -105,6 +105,15 @@ putfont8(Byte *vram, int xsize, int x, int y, Byte c, Byte *font)
 }
 
 void
+putfonts8_asc(Byte *vram, int xsize, int x, int y, Byte c, char *string)
+{
+    for (char *ch = string; *ch != '\0'; ch++) {
+        putfont8(vram, xsize, x, y, c, fonts[*ch]);
+        x += 8;
+    }
+}
+
+void
 hari_main(void)
 {
     init_palette();
@@ -129,7 +138,7 @@ hari_main(void)
     boxfill8(vram, binfo->scrnx, COL8_FFFFFF, binfo->scrnx - 47, binfo->scrny - 3, binfo->scrnx - 4, binfo->scrny - 3);
     boxfill8(vram, binfo->scrnx, COL8_FFFFFF, binfo->scrnx - 3, binfo->scrny - 24, binfo->scrnx - 3, binfo->scrny - 3);
 
-    putfont8(vram, binfo->scrnx, 40, 40, COL8_FFFFFF, fonts['B']);
+    putfonts8_asc(vram, binfo->scrnx, 40, 40, COL8_FFFFFF, "Hello World!");
 
     for (;;) {
         _io_hlt();
