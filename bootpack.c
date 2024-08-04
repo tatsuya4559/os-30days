@@ -1,4 +1,5 @@
 #include "font.h"
+#include "iolib.h"
 
 #define COLOR_BLACK        0
 #define COLOR_LIGHT_RED    1
@@ -139,6 +140,10 @@ hari_main(void)
     boxfill8(vram, binfo->scrnx, COLOR_WHITE, binfo->scrnx - 3, binfo->scrny - 24, binfo->scrnx - 3, binfo->scrny - 3);
 
     putfonts8_asc(vram, binfo->scrnx, 40, 40, COLOR_WHITE, "Hello World!");
+
+    char var_string[20];
+    sprintf(var_string, "scrnx = %d", binfo->scrnx);
+    putfonts8_asc(vram, binfo->scrnx, 40, 80, COLOR_WHITE, var_string);
 
     for (;;) {
         _io_hlt();
