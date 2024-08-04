@@ -1,21 +1,21 @@
 #include "font.h"
 
-#define COL8_000000 0
-#define COL8_FF0000 1
-#define COL8_00FF00 2
-#define COL8_FFFF00 3
-#define COL8_0000FF 4
-#define COL8_FF00FF 5
-#define COL8_00FFFF 6
-#define COL8_FFFFFF 7
-#define COL8_C6C6C6 8
-#define COL8_840000 9
-#define COL8_008400 10
-#define COL8_848400 11
-#define COL8_000084 12
-#define COL8_840084 13
-#define COL8_008484 14
-#define COL8_848484 15
+#define COLOR_BLACK        0
+#define COLOR_LIGHT_RED    1
+#define COLOR_LIGHT_GREEN  2
+#define COLOR_LIGHT_YELLOW 3
+#define COLOR_LIGHT_BLUE   4
+#define COLOR_LIGHT_PURPLE 5
+#define COLOR_LIGHT_CYAN   6
+#define COLOR_WHITE        7
+#define COLOR_LIGHT_GRAY   8
+#define COLOR_DARK_RED     9
+#define COLOR_DARK_GREEN   10
+#define COLOR_DARK_YELLOW  11
+#define COLOR_DARK_BLUE    12
+#define COLOR_DARK_PURPLE  13
+#define COLOR_DARK_CYAN    14
+#define COLOR_DARK_GRAY    15
 
 typedef unsigned char Byte;
 
@@ -121,24 +121,24 @@ hari_main(void)
     BootInfo *binfo = (BootInfo *) 0x0ff0;
     Byte *vram = binfo->vram;
 
-    boxfill8(vram, binfo->scrnx, COL8_008484, 0, 0, binfo->scrnx - 1, binfo->scrny - 29);
-    boxfill8(vram, binfo->scrnx, COL8_C6C6C6, 0, binfo->scrny - 28, binfo->scrnx - 1, binfo->scrny - 28);
-    boxfill8(vram, binfo->scrnx, COL8_FFFFFF, 0, binfo->scrny - 27, binfo->scrnx - 1, binfo->scrny - 27);
-    boxfill8(vram, binfo->scrnx, COL8_C6C6C6, 0, binfo->scrny - 26, binfo->scrnx - 1, binfo->scrny - 1);
+    boxfill8(vram, binfo->scrnx, COLOR_DARK_CYAN, 0, 0, binfo->scrnx - 1, binfo->scrny - 29);
+    boxfill8(vram, binfo->scrnx, COLOR_LIGHT_GRAY, 0, binfo->scrny - 28, binfo->scrnx - 1, binfo->scrny - 28);
+    boxfill8(vram, binfo->scrnx, COLOR_WHITE, 0, binfo->scrny - 27, binfo->scrnx - 1, binfo->scrny - 27);
+    boxfill8(vram, binfo->scrnx, COLOR_LIGHT_GRAY, 0, binfo->scrny - 26, binfo->scrnx - 1, binfo->scrny - 1);
 
-    boxfill8(vram, binfo->scrnx, COL8_FFFFFF, 3, binfo->scrny - 24, 59, binfo->scrny - 24);
-    boxfill8(vram, binfo->scrnx, COL8_FFFFFF, 2, binfo->scrny - 24, 2, binfo->scrny - 4);
-    boxfill8(vram, binfo->scrnx, COL8_848484, 3, binfo->scrny - 4, 59, binfo->scrny - 4);
-    boxfill8(vram, binfo->scrnx, COL8_848484, 59, binfo->scrny - 23, 59, binfo->scrny - 5);
-    boxfill8(vram, binfo->scrnx, COL8_000000, 2, binfo->scrny - 3, 59, binfo->scrny - 3);
-    boxfill8(vram, binfo->scrnx, COL8_000000, 60, binfo->scrny - 24, 60, binfo->scrny - 3);
+    boxfill8(vram, binfo->scrnx, COLOR_WHITE, 3, binfo->scrny - 24, 59, binfo->scrny - 24);
+    boxfill8(vram, binfo->scrnx, COLOR_WHITE, 2, binfo->scrny - 24, 2, binfo->scrny - 4);
+    boxfill8(vram, binfo->scrnx, COLOR_DARK_GRAY, 3, binfo->scrny - 4, 59, binfo->scrny - 4);
+    boxfill8(vram, binfo->scrnx, COLOR_DARK_GRAY, 59, binfo->scrny - 23, 59, binfo->scrny - 5);
+    boxfill8(vram, binfo->scrnx, COLOR_BLACK, 2, binfo->scrny - 3, 59, binfo->scrny - 3);
+    boxfill8(vram, binfo->scrnx, COLOR_BLACK, 60, binfo->scrny - 24, 60, binfo->scrny - 3);
 
-    boxfill8(vram, binfo->scrnx, COL8_848484, binfo->scrnx - 47, binfo->scrny - 24, binfo->scrnx - 4, binfo->scrny - 24);
-    boxfill8(vram, binfo->scrnx, COL8_848484, binfo->scrnx - 47, binfo->scrny - 23, binfo->scrnx - 47, binfo->scrny - 4);
-    boxfill8(vram, binfo->scrnx, COL8_FFFFFF, binfo->scrnx - 47, binfo->scrny - 3, binfo->scrnx - 4, binfo->scrny - 3);
-    boxfill8(vram, binfo->scrnx, COL8_FFFFFF, binfo->scrnx - 3, binfo->scrny - 24, binfo->scrnx - 3, binfo->scrny - 3);
+    boxfill8(vram, binfo->scrnx, COLOR_DARK_GRAY, binfo->scrnx - 47, binfo->scrny - 24, binfo->scrnx - 4, binfo->scrny - 24);
+    boxfill8(vram, binfo->scrnx, COLOR_DARK_GRAY, binfo->scrnx - 47, binfo->scrny - 23, binfo->scrnx - 47, binfo->scrny - 4);
+    boxfill8(vram, binfo->scrnx, COLOR_WHITE, binfo->scrnx - 47, binfo->scrny - 3, binfo->scrnx - 4, binfo->scrny - 3);
+    boxfill8(vram, binfo->scrnx, COLOR_WHITE, binfo->scrnx - 3, binfo->scrny - 24, binfo->scrnx - 3, binfo->scrny - 3);
 
-    putfonts8_asc(vram, binfo->scrnx, 40, 40, COL8_FFFFFF, "Hello World!");
+    putfonts8_asc(vram, binfo->scrnx, 40, 40, COLOR_WHITE, "Hello World!");
 
     for (;;) {
         _io_hlt();
