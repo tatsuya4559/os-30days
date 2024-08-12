@@ -1,5 +1,6 @@
 #include "iolib.h"
 
+static
 int
 dec2asc(char *str, int dec)
 {
@@ -18,6 +19,7 @@ dec2asc(char *str, int dec)
 }
 
 //16進数からASCIIコードに変換
+static
 int
 hex2asc(char *str, int dec)
 { //10で割れた回数（つまり桁数）をlenに、各桁をbufに格納
