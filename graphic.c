@@ -1,10 +1,6 @@
+#include "nasmfunc.h"
 #include "font.h"
 #include "graphic.h"
-
-extern void _io_out8(int port, int data);
-extern void _io_cli(void);
-extern int _io_load_eflags(void);
-extern void _io_store_eflags(int eflags);
 
 static
 void

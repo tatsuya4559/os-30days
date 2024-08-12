@@ -5,6 +5,9 @@ CC := gcc
 # -nostdlib  標準ライブラリをリンクしないように指示します。カーネルやブートローダなどの特殊なプログラムを作成する際に使用されます。このオプションを使うと、標準ライブラリ関数（例：printfなど）が利用できなくなります。
 CFLAGS := -march=i486 -m32 -fno-pic -nostdlib
 
+C_SRC := iolib.c graphic.c dsctbl.c int.c
+C_OBJ := $(patsubst %.c,%.o,$(C_SRC))
+
 all: run
 
 asmhead.bin: asmhead.asm
@@ -19,9 +22,9 @@ nasmfunc.o: nasmfunc.asm
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-bootpack.hrb: bootpack.c font.h os.ld nasmfunc.o iolib.o graphic.o dsctbl.o
+bootpack.hrb: bootpack.c font.h os.ld nasmfunc.o $(C_OBJ)
 	# -T os.ld `os.ldというリンクスクリプトを使用してリンクします。リンクスクリプトは、生成されるバイナリのレイアウトやメモリマップを指定するために使用されます。
-	$(CC) $(CFLAGS) -T os.ld nasmfunc.o iolib.o graphic.o dsctbl.o bootpack.c -o $@
+	$(CC) $(CFLAGS) -T os.ld $(filter %.o,$^) bootpack.c -o $@
 
 haribote.sys: asmhead.bin bootpack.hrb
 	cat $^ > $@

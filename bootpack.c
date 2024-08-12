@@ -1,9 +1,9 @@
+#include "nasmfunc.h"
 #include "common.h"
 #include "iolib.h"
 #include "graphic.h"
 #include "dsctbl.h"
-
-extern void _io_hlt(void);
+#include "int.h"
 
 typedef struct {
     Byte cyls, leds, vmode, reserve;
@@ -15,6 +15,7 @@ void
 hari_main(void)
 {
     init_gdtidt();
+    init_pic();
     init_palette();
 
     BootInfo *binfo = (BootInfo *) 0x0ff0;

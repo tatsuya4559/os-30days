@@ -1,7 +1,5 @@
+#include "nasmfunc.h"
 #include "common.h"
-
-extern void _load_gdtr(int limit, int addr);
-extern void _load_idtr(int limit, int addr);
 
 typedef struct {
     short limit_low, base_low;
