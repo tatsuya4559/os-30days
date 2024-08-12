@@ -23,5 +23,7 @@
 void init_palette(void);
 void putfonts8_asc(Byte *vram, int xsize, int x, int y, Byte c, char *string);
 void init_mouse_cursor8(Byte *mouse, Byte background_color);
+void putblock8_8(Byte *vram, int vxsize, int pxsize, int pysize, int px0, int py0, Byte *buf, int bxsize);
+void boxfill8(Byte *vram, int xsize, Byte c, int x0, int y0, int x1, int y1);
 
 #endif /* _GRAPHIC_H_ */

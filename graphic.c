@@ -116,3 +116,26 @@ putfonts8_asc(Byte *vram, int xsize, int x, int y, Byte c, char *string)
         x += 8;
     }
 }
+
+void
+putblock8_8(Byte *vram, int vxsize, int pxsize,
+            int pysize, int px0, int py0, Byte *buf, int bxsize)
+{
+    int x, y;
+    for (y=0; y<pysize; y++) {
+        for (x=0; x<pxsize; x++) {
+            vram[(py0 + y) * vxsize + (px0 + x)] = buf[y * bxsize + x];
+        }
+    }
+}
+
+void
+boxfill8(Byte *vram, int xsize, Byte c, int x0, int y0, int x1, int y1)
+{
+    int x, y;
+    for (y = y0; y <= y1; y++) {
+        for (x = x0; x <= x1; x++) {
+            vram[x + y * xsize] = c;
+        }
+    }
+}
