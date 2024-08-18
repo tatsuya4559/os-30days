@@ -22,7 +22,7 @@ inthandler2c(int *esp)
 {
     BootInfo *binfo = (BootInfo *) ADR_BOOTINFO;
     boxfill8(binfo->vram, binfo->scrnx, COLOR_BLACK, 0, 0, 32 * 8 - 1, 15);
-    putfonts8_asc(binfo->vram, binfo->scrnx, 0, 0, COLOR_WHITE, "INT 2C (IRQ-1) : PS/2 keyboard");
+    putfonts8_asc(binfo->vram, binfo->scrnx, 0, 0, COLOR_WHITE, "INT 2C (IRQ-12) : PS/2 mouse");
     for (;;) {
         _io_hlt();
     }

@@ -5,6 +5,47 @@
 #include "dsctbl.h"
 #include "int.h"
 
+#define  PORT_KEYDAT           0x0060
+#define  PORT_KEYSTA           0x0064
+#define  PORT_KEYCMD           0x0064
+#define  KEYSTA_SEND_NOTREADY  0x02
+#define  KEYCMD_WRITE_MODE     0x60
+#define  KEYCMD_SENDTO_MOUSE   0xd4
+#define  MOUSECMD_ENABLE       0xf4
+#define  KBC_MODE              0x47
+
+static
+void
+wait_KBC_sendready(void)
+{
+    for (;;) {
+        if ((_io_in8(PORT_KEYSTA) & KEYSTA_SEND_NOTREADY) == 0) {
+            return;
+        }
+    }
+}
+
+static
+void
+init_keyboard(void)
+{
+    wait_KBC_sendready();
+    _io_out8(PORT_KEYCMD, KEYCMD_WRITE_MODE);
+    wait_KBC_sendready();
+    _io_out8(PORT_KEYDAT, KBC_MODE);
+}
+
+static
+void
+enable_mouse(void)
+{
+    wait_KBC_sendready();
+    _io_out8(PORT_KEYCMD, KEYCMD_SENDTO_MOUSE);
+    wait_KBC_sendready();
+    _io_out8(PORT_KEYDAT, MOUSECMD_ENABLE);
+}
+
+static
 void
 set_screen(BootInfo *binfo)
 {
@@ -28,6 +69,7 @@ set_screen(BootInfo *binfo)
     boxfill8(vram, binfo->scrnx, COLOR_WHITE, binfo->scrnx - 3, binfo->scrny - 24, binfo->scrnx - 3, binfo->scrny - 3);
 }
 
+static
 void
 show_message(BootInfo *binfo)
 {
@@ -56,17 +98,20 @@ hari_main(void)
     init_pic();
     _io_sti();
 
-    init_palette();
-
-    BootInfo *binfo = (BootInfo *) ADR_BOOTINFO;
-    set_screen(binfo);
-    show_message(binfo);
+    Byte keybuf[32];
+    fifo_init(&keyfifo, 32, keybuf);
 
     _io_out8(PIC0_IMR, 0xf9); // PIC1とキーボードを許可
     _io_out8(PIC1_IMR, 0xef); // マウスを許可
 
-    Byte keybuf[32];
-    fifo_init(&keyfifo, 32, keybuf);
+    init_keyboard();
+
+    init_palette();
+    BootInfo *binfo = (BootInfo *) ADR_BOOTINFO;
+    set_screen(binfo);
+    show_message(binfo);
+
+    enable_mouse();
 
     Byte keycode, s[4];
     for (;;) {

@@ -64,7 +64,7 @@ init_gdtidt(void)
     for (int i=0; i< 256; i++) {
         set_gatedesc(idt + i, 0, 0, 0);
     }
+    _load_idtr(0x7ff, 0x0026f800);
     set_gatedesc(idt + 0x21, (int) _asm_inthandler21, 2 << 3, AR_INTGATE32);
     set_gatedesc(idt + 0x2c, (int) _asm_inthandler2c, 2 << 3, AR_INTGATE32);
-    _load_idtr(0x7ff, 0x0026f800);
 }
