@@ -72,14 +72,16 @@ init_mouse_cursor8(Byte *mouse, Byte background_color)
     int x, y;
     for (y=0; y<16; y++) {
         for (x=0; x<16; x++) {
-            if (cursor[y][x] == '*') {
+            switch (cursor[y][x]) {
+            case '*':
                 mouse[y*16 + x] = COLOR_BLACK;
-            }
-            if (cursor[y][x] == 'o') {
+                break;
+            case 'o':
                 mouse[y*16 + x] = COLOR_WHITE;
-            }
-            if (cursor[y][x] == '.') {
+                break;
+            case '.':
                 mouse[y*16 + x] = background_color;
+                break;
             }
         }
     }
