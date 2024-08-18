@@ -3,6 +3,7 @@
 
 extern void _io_hlt(void);
 
+extern int _io_in8(int port);
 extern void _io_out8(int port, int data);
 extern void _io_cli(void);
 extern void _io_sti(void);

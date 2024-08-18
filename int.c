@@ -1,18 +1,23 @@
 #include "nasmfunc.h"
 #include "common.h"
 #include "graphic.h"
+#include "iolib.h"
 #include "int.h"
+
+#define PORT_KEYDAT 0x0060
 
 /* PS/2キーボードからの割り込み */
 void
 inthandler21(int *esp)
 {
     BootInfo *binfo = (BootInfo *) ADR_BOOTINFO;
-    boxfill8(binfo->vram, binfo->scrnx, COLOR_BLACK, 0, 0, 32 * 8 - 1, 15);
-    putfonts8_asc(binfo->vram, binfo->scrnx, 0, 0, COLOR_WHITE, "INT 21 (IRQ-1) : PS/2 keyboard");
-    for (;;) {
-        _io_hlt();
-    }
+    Byte keycode, s[4];
+    _io_out8(PIC0_OCW2, 0x61); // IRQ-01受付完了をPICに通知
+    keycode = _io_in8(PORT_KEYDAT);
+
+    sprintf(s, "%x", keycode);
+    boxfill8(binfo->vram, binfo->scrnx, COLOR_DARK_CYAN, 0, 16, 15, 31);
+    putfonts8_asc(binfo->vram, binfo->scrnx, 0, 16, COLOR_WHITE, s);
 }
 
 /* PS/2マウスからの割り込み */
