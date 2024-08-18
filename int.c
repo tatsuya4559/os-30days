@@ -5,7 +5,7 @@
 
 #define PORT_KEYDAT 0x0060
 
-FIFO keyfifo;
+FIFO keyfifo, mousefifo;
 
 /* PS/2キーボードからの割り込み */
 void
@@ -20,12 +20,11 @@ inthandler21(int *esp)
 void
 inthandler2c(int *esp)
 {
-    BootInfo *binfo = (BootInfo *) ADR_BOOTINFO;
-    boxfill8(binfo->vram, binfo->scrnx, COLOR_BLACK, 0, 0, 32 * 8 - 1, 15);
-    putfonts8_asc(binfo->vram, binfo->scrnx, 0, 0, COLOR_WHITE, "INT 2C (IRQ-12) : PS/2 mouse");
-    for (;;) {
-        _io_hlt();
-    }
+    Byte data;
+    _io_out8(PIC1_OCW2, 0x64); // IRQ-12受付完了をPIC1に通知
+    _io_out8(PIC0_OCW2, 0x62); // IRQ-02受付完了をPIC0に通知
+    data = _io_in8(PORT_KEYDAT);
+    fifo_enqueue(&mousefifo, data);
 }
 
 void

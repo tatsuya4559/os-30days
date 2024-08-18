@@ -19,5 +19,6 @@
 void init_pic(void);
 
 extern FIFO keyfifo;
+extern FIFO mousefifo;
 
 #endif /* _INT_H_ */

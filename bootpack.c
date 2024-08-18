@@ -98,8 +98,9 @@ hari_main(void)
     init_pic();
     _io_sti();
 
-    Byte keybuf[32];
+    Byte keybuf[32], mousebuf[128];
     fifo_init(&keyfifo, 32, keybuf);
+    fifo_init(&mousefifo, 128, mousebuf);
 
     _io_out8(PIC0_IMR, 0xf9); // PIC1とキーボードを許可
     _io_out8(PIC1_IMR, 0xef); // マウスを許可
@@ -116,14 +117,20 @@ hari_main(void)
     Byte keycode, s[4];
     for (;;) {
         _io_cli(); // 割り込み禁止
-        if (keyfifo.len == 0) {
+        if (keyfifo.len == 0 && mousefifo.len == 0) {
             _io_stihlt();
-        } else {
+        } else if (keyfifo.len != 0) {
             keycode = fifo_dequeue(&keyfifo);
             _io_sti(); // 割り込み禁止解除
             sprintf(s, "%x", keycode);
             boxfill8(binfo->vram, binfo->scrnx, COLOR_DARK_CYAN, 0, 16, 15, 31);
             putfonts8_asc(binfo->vram, binfo->scrnx, 0, 16, COLOR_WHITE, s);
+        } else if (mousefifo.len != 0) {
+            keycode = fifo_dequeue(&mousefifo);
+            _io_sti();
+            sprintf(s, "%x", keycode);
+            boxfill8(binfo->vram, binfo->scrnx, COLOR_DARK_CYAN, 32, 16, 47, 31);
+            putfonts8_asc(binfo->vram, binfo->scrnx, 32, 16, COLOR_WHITE, s);
         }
     }
 }
