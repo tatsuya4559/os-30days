@@ -65,7 +65,17 @@ hari_main(void)
     _io_out8(PIC0_IMR, 0xf9); // PIC1とキーボードを許可
     _io_out8(PIC1_IMR, 0xef); // マウスを許可
 
+    Byte keycode, s[4];
     for (;;) {
-        _io_hlt();
+        _io_cli(); // 割り込み禁止
+        if (keybuf.len == 0) {
+            _io_stihlt();
+        } else {
+            keycode = keybuf_dequeue(&keybuf);
+            _io_sti(); // 割り込み禁止解除
+            sprintf(s, "%x", keycode);
+            boxfill8(binfo->vram, binfo->scrnx, COLOR_DARK_CYAN, 0, 16, 15, 31);
+            putfonts8_asc(binfo->vram, binfo->scrnx, 0, 16, COLOR_WHITE, s);
+        }
     }
 }

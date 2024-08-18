@@ -2,6 +2,7 @@
 #define _NASMFUNC_H_
 
 extern void _io_hlt(void);
+extern void _io_stihlt(void);
 
 extern int _io_in8(int port);
 extern void _io_out8(int port, int data);
