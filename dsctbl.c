@@ -1,5 +1,11 @@
 #include "nasmfunc.h"
 #include "common.h"
+#include "dsctbl.h"
+
+#define  LIMIT_BOTPAK  0x0007ffff
+#define  ADR_BOTPAK    0x00280000
+#define  AR_CODE32_ER  0x409a
+#define  AR_INTGATE32  0x008e
 
 typedef struct {
     short limit_low, base_low;
@@ -51,12 +57,14 @@ init_gdtidt(void)
         set_segmdesc(gdt + i, 0, 0, 0);
     }
     set_segmdesc(gdt + 1, 0xffffffff, 0x00000000, 0x4092);
-    set_segmdesc(gdt + 2, 0x0007ffff, 0x00280000, 0x409a);
+    set_segmdesc(gdt + 2, LIMIT_BOTPAK, ADR_BOTPAK, AR_CODE32_ER);
     _load_gdtr(0xffff, 0x00270000);
 
     // init IDT
     for (int i=0; i< 256; i++) {
         set_gatedesc(idt + i, 0, 0, 0);
     }
+    set_gatedesc(idt + 0x21, (int) _asm_inthandler21, 2 << 3, AR_INTGATE32);
+    set_gatedesc(idt + 0x2c, (int) _asm_inthandler2c, 2 << 3, AR_INTGATE32);
     _load_idtr(0x7ff, 0x0026f800);
 }
