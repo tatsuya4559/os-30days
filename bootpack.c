@@ -6,15 +6,8 @@
 #include "int.h"
 
 void
-hari_main(void)
+set_screen(BootInfo *binfo)
 {
-    init_gdtidt();
-    init_pic();
-    _io_sti();
-
-    init_palette();
-
-    BootInfo *binfo = (BootInfo *) ADR_BOOTINFO;
     Byte *vram = binfo->vram;
 
     boxfill8(vram, binfo->scrnx, COLOR_DARK_CYAN, 0, 0, binfo->scrnx - 1, binfo->scrny - 29);
@@ -33,6 +26,12 @@ hari_main(void)
     boxfill8(vram, binfo->scrnx, COLOR_DARK_GRAY, binfo->scrnx - 47, binfo->scrny - 23, binfo->scrnx - 47, binfo->scrny - 4);
     boxfill8(vram, binfo->scrnx, COLOR_WHITE, binfo->scrnx - 47, binfo->scrny - 3, binfo->scrnx - 4, binfo->scrny - 3);
     boxfill8(vram, binfo->scrnx, COLOR_WHITE, binfo->scrnx - 3, binfo->scrny - 24, binfo->scrnx - 3, binfo->scrny - 3);
+}
+
+void
+show_message(BootInfo *binfo)
+{
+    Byte *vram = binfo->vram;
 
     putfonts8_asc(vram, binfo->scrnx, 40, 40, COLOR_WHITE, "Hello World!");
 
@@ -48,6 +47,20 @@ hari_main(void)
     putblock8_8(binfo->vram, binfo->scrnx, 16, 16, mx, my, mcursor, 16);
     sprintf(s, "(%d, %d)", mx, my);
     putfonts8_asc(binfo->vram, binfo->scrnx, 0, 0, COLOR_WHITE, s);
+}
+
+void
+hari_main(void)
+{
+    init_gdtidt();
+    init_pic();
+    _io_sti();
+
+    init_palette();
+
+    BootInfo *binfo = (BootInfo *) ADR_BOOTINFO;
+    set_screen(binfo);
+    show_message(binfo);
 
     _io_out8(PIC0_IMR, 0xf9); // PIC1とキーボードを許可
     _io_out8(PIC1_IMR, 0xef); // マウスを許可
