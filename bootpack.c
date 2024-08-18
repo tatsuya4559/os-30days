@@ -65,13 +65,16 @@ hari_main(void)
     _io_out8(PIC0_IMR, 0xf9); // PIC1とキーボードを許可
     _io_out8(PIC1_IMR, 0xef); // マウスを許可
 
+    Byte keybuf[32];
+    fifo_init(&keyfifo, 32, keybuf);
+
     Byte keycode, s[4];
     for (;;) {
         _io_cli(); // 割り込み禁止
-        if (keybuf.len == 0) {
+        if (keyfifo.len == 0) {
             _io_stihlt();
         } else {
-            keycode = keybuf_dequeue(&keybuf);
+            keycode = fifo_dequeue(&keyfifo);
             _io_sti(); // 割り込み禁止解除
             sprintf(s, "%x", keycode);
             boxfill8(binfo->vram, binfo->scrnx, COLOR_DARK_CYAN, 0, 16, 15, 31);

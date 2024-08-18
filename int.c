@@ -5,33 +5,7 @@
 
 #define PORT_KEYDAT 0x0060
 
-KeyBuf keybuf;
-
-void
-keybuf_enqueue(KeyBuf *keybuf, Byte keycode)
-{
-    if (keybuf->len >= 32) {
-        return; // overflow
-    }
-    keybuf->data[keybuf->writing_next] = keycode;
-    keybuf->len++;
-    keybuf->writing_next++;
-    if (keybuf->writing_next == 32) {
-        keybuf->writing_next = 0;
-    }
-}
-
-Byte
-keybuf_dequeue(KeyBuf *keybuf)
-{
-    Byte keycode = keybuf->data[keybuf->reading_next];
-    keybuf->len--;
-    keybuf->reading_next++;
-    if (keybuf->reading_next == 32) {
-        keybuf->reading_next = 0;
-    }
-    return keycode;
-}
+FIFO keyfifo;
 
 /* PS/2キーボードからの割り込み */
 void
@@ -39,7 +13,7 @@ inthandler21(int *esp)
 {
     _io_out8(PIC0_OCW2, 0x61); // IRQ-01受付完了をPICに通知
     Byte keycode = _io_in8(PORT_KEYDAT);
-    keybuf_enqueue(&keybuf, keycode);
+    fifo_enqueue(&keyfifo, keycode);
 }
 
 /* PS/2マウスからの割り込み */
