@@ -14,6 +14,7 @@
 unsigned int
 memtest_sub(unsigned int start, unsigned int end)
 {
+    // optimizaion may break this function
     unsigned int i, *p, old, pat0 = 0xaa55aa55, pat1 = 0x55aa55aa;
     for (i = start; i <= end; i += 0x1000) {
         p = (unsigned int *) (i + 0xffc); // check last 4 bytes
@@ -68,6 +69,114 @@ memtest(unsigned int start, unsigned int end)
     }
 
     return i;
+}
+
+#define MEMMAN_ADDR 0x003c0000
+#define MEMMAN_FREES 4090
+
+typedef struct {
+    unsigned int addr, size;
+} FreeInfo;
+
+typedef struct {
+    int frees, maxfrees, lostsize, losts;
+    FreeInfo free[MEMMAN_FREES];
+} MemoryManager;
+
+void
+memman_init(MemoryManager *man)
+{
+    man->frees = 0;
+    man->maxfrees = 0;
+    man->lostsize = 0;
+    man->losts = 0;
+}
+
+unsigned int
+memman_total(MemoryManager *man)
+{
+    unsigned int i, t = 0;
+    for (i = 0; i < man->frees; i++) {
+        t += man->free[i].size;
+    }
+    return t;
+}
+
+unsigned int
+memman_alloc(MemoryManager *man, unsigned int size)
+{
+    unsigned int i, a;
+    for (i = 0; i < man->frees; i++) {
+        if (man->free[i].size >= size) {
+            a = man->free[i].addr;
+            man->free[i].addr += size;
+            man->free[i].size -= size;
+            if (man->free[i].size == 0) {
+                // close the hole
+                man->frees--;
+                for (; i < man->frees; i++) {
+                    man->free[i] = man->free[i + 1];
+                }
+            }
+            return a;
+        }
+    }
+    return 0; // no enough memory
+}
+
+int
+memman_free(MemoryManager *man, unsigned int addr, unsigned int size)
+{
+    int i, j;
+    // find the hole to insert
+    for (i = 0; i < man->frees; i++) {
+        if (man->free[i].addr > addr) {
+            break;
+        }
+    }
+    // free[i - 1].addr < addr < free[i].addr
+    if (i > 0) {
+        if (man->free[i - 1].addr + man->free[i - 1].size == addr) {
+            // merge with the hole
+            man->free[i - 1].size += size;
+            if (i < man->frees) {
+                if (addr + size == man->free[i].addr) {
+                    // merge with the next hole
+                    man->free[i - 1].size += man->free[i].size;
+                    // remove the hole
+                    man->frees--;
+                    for (; i < man->frees; i++) {
+                        man->free[i] = man->free[i + 1];
+                    }
+                }
+            }
+            return 0; // success
+        }
+    }
+    if (i < man->frees) {
+        if (addr + size == man->free[i].addr) {
+            // merge with the next hole
+            man->free[i].addr = addr;
+            man->free[i].size += size;
+            return 0; // success
+        }
+    }
+    if (man->frees < MEMMAN_FREES) {
+        // shift right
+        for (j = man->frees; j > i; j--) {
+            man->free[j] = man->free[j - 1];
+        }
+        man->frees++;
+        if (man->maxfrees < man->frees) {
+            man->maxfrees = man->frees;
+        }
+        man->free[i].addr = addr;
+        man->free[i].size = size;
+        return 0; // success
+    }
+    man->losts++;
+    man->lostsize += size;
+    return -1; // fail
 }
 
 static
@@ -130,8 +239,13 @@ hari_main(void)
     sprintf(s0, "(%d, %d)", mx, my);
     putfonts8_asc(binfo->vram, binfo->scrnx, 0, 0, COLOR_WHITE, s0);
 
-    unsigned int i = memtest(0x00400000, 0xbfffffff) / (1024 * 1024);
-    sprintf(s0, "memory %dMB", i);
+    MemoryManager *memman = (MemoryManager *) MEMMAN_ADDR;
+
+    unsigned int memtotal = memtest(0x00400000, 0xbfffffff);
+    memman_init(memman);
+    memman_free(memman, 0x00001000, 0x0009e000);
+    memman_free(memman, 0x00400000, memtotal - 0x00400000);
+    sprintf(s0, "memory %dMB   free: %dKB", memtotal / (1024 * 1024), memman_total(memman) / 1024);
     putfonts8_asc(binfo->vram, binfo->scrnx, 0, 32, COLOR_WHITE, s0);
 
     enable_mouse(&mdec);
