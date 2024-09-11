@@ -112,7 +112,9 @@ hari_main(void)
     set_screen(binfo);
     show_message(binfo);
 
+    Byte mouse_dbuf[3], mouse_phase;
     enable_mouse();
+    mouse_phase = 0; // to waiting 0xfa phase
 
     Byte keycode, s[4];
     for (;;) {
@@ -128,9 +130,29 @@ hari_main(void)
         } else if (mousefifo.len != 0) {
             keycode = fifo_dequeue(&mousefifo);
             _io_sti();
-            sprintf(s, "%x", keycode);
-            boxfill8(binfo->vram, binfo->scrnx, COLOR_DARK_CYAN, 32, 16, 47, 31);
-            putfonts8_asc(binfo->vram, binfo->scrnx, 32, 16, COLOR_WHITE, s);
+
+            switch (mouse_phase) {
+              case 0:
+                if (keycode == 0xfa) {
+                    mouse_phase = 1;
+                }
+                break;
+              case 1:
+                mouse_dbuf[0] = keycode;
+                mouse_phase = 2;
+                break;
+              case 2:
+                mouse_dbuf[1] = keycode;
+                mouse_phase = 3;
+                break;
+              case 3:
+                mouse_dbuf[2] = keycode;
+                mouse_phase = 1;
+                sprintf(s, "%x %x %x", mouse_dbuf[0], mouse_dbuf[1], mouse_dbuf[2]);
+                boxfill8(binfo->vram, binfo->scrnx, COLOR_DARK_CYAN, 32, 16, 32 + 8*8 - 1, 31);
+                putfonts8_asc(binfo->vram, binfo->scrnx, 32, 16, COLOR_WHITE, s);
+                break;
+            }
         }
     }
 }
