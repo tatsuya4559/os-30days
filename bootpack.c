@@ -122,28 +122,6 @@ set_screen(BootInfo *binfo)
     boxfill8(vram, binfo->scrnx, COLOR_WHITE, binfo->scrnx - 3, binfo->scrny - 24, binfo->scrnx - 3, binfo->scrny - 3);
 }
 
-static
-void
-show_message(BootInfo *binfo)
-{
-    Byte *vram = binfo->vram;
-
-    putfonts8_asc(vram, binfo->scrnx, 40, 40, COLOR_WHITE, "Hello World!");
-
-    char s[20];
-    sprintf(s, "scrnx = %d", binfo->scrnx);
-    putfonts8_asc(vram, binfo->scrnx, 40, 80, COLOR_WHITE, s);
-
-    int mx, my;
-    Byte mcursor[256];
-    mx = (binfo->scrnx - 16) / 2;
-    my = (binfo->scrny - 28 - 16) / 2;
-    init_mouse_cursor8(mcursor, COLOR_DARK_CYAN);
-    putblock8_8(binfo->vram, binfo->scrnx, 16, 16, mx, my, mcursor, 16);
-    sprintf(s, "(%d, %d)", mx, my);
-    putfonts8_asc(binfo->vram, binfo->scrnx, 0, 0, COLOR_WHITE, s);
-}
-
 void
 hari_main(void)
 {
@@ -164,7 +142,23 @@ hari_main(void)
     init_palette();
     BootInfo *binfo = (BootInfo *) ADR_BOOTINFO;
     set_screen(binfo);
-    show_message(binfo);
+
+    Byte *vram = binfo->vram;
+
+    putfonts8_asc(vram, binfo->scrnx, 40, 40, COLOR_WHITE, "Hello World!");
+
+    char s0[20];
+    sprintf(s0, "scrnx = %d", binfo->scrnx);
+    putfonts8_asc(vram, binfo->scrnx, 40, 80, COLOR_WHITE, s0);
+
+    int mx, my;
+    Byte mcursor[256];
+    mx = (binfo->scrnx - 16) / 2;
+    my = (binfo->scrny - 28 - 16) / 2;
+    init_mouse_cursor8(mcursor, COLOR_DARK_CYAN);
+    putblock8_8(binfo->vram, binfo->scrnx, 16, 16, mx, my, mcursor, 16);
+    sprintf(s0, "(%d, %d)", mx, my);
+    putfonts8_asc(binfo->vram, binfo->scrnx, 0, 0, COLOR_WHITE, s0);
 
     enable_mouse(&mdec);
 
@@ -177,25 +171,46 @@ hari_main(void)
         } else if (keyfifo.len != 0) {
             keycode = fifo_dequeue(&keyfifo);
             _io_sti(); // 割り込み禁止解除
-            sprintf(s, "%x", keycode);
+            sprintf(s0, "%x", keycode);
             boxfill8(binfo->vram, binfo->scrnx, COLOR_DARK_CYAN, 0, 16, 15, 31);
-            putfonts8_asc(binfo->vram, binfo->scrnx, 0, 16, COLOR_WHITE, s);
+            putfonts8_asc(binfo->vram, binfo->scrnx, 0, 16, COLOR_WHITE, s0);
         } else if (mousefifo.len != 0) {
             keycode = fifo_dequeue(&mousefifo);
             _io_sti();
             if (mouse_decode(&mdec, keycode) != 0) {
-                sprintf(s, "[lcr %d %d]", mdec.x, mdec.y);
+                sprintf(s0, "[lcr %d %d]", mdec.x, mdec.y);
                 if ((mdec.btn & 0x01) != 0) {
-                    s[1] = 'L';
+                    s0[1] = 'L';
                 }
                 if ((mdec.btn & 0x02) != 0) {
-                    s[3] = 'R';
+                    s0[3] = 'R';
                 }
                 if ((mdec.btn & 0x04) != 0) {
-                    s[2] = 'C';
+                    s0[2] = 'C';
                 }
                 boxfill8(binfo->vram, binfo->scrnx, COLOR_DARK_CYAN, 32, 16, 32 + 15*8 - 1, 31);
-                putfonts8_asc(binfo->vram, binfo->scrnx, 32, 16, COLOR_WHITE, s);
+                putfonts8_asc(binfo->vram, binfo->scrnx, 32, 16, COLOR_WHITE, s0);
+
+                // move mouse cursor
+                boxfill8(binfo->vram, binfo->scrnx, COLOR_DARK_CYAN, mx, my, mx + 15, my + 15); // hide mouse cursor
+                mx += mdec.x;
+                my += mdec.y;
+                if (mx < 0) {
+                    mx = 0;
+                }
+                if (my < 0) {
+                    my = 0;
+                }
+                if (mx > binfo->scrnx - 16) {
+                    mx = binfo->scrnx - 16;
+                }
+                if (my > binfo->scrny - 16) {
+                    my = binfo->scrny - 16;
+                }
+                sprintf(s, "(%d, %d)", mx, my);
+                boxfill8(binfo->vram, binfo->scrnx, COLOR_DARK_CYAN, 0, 0, 79, 15); // hide coordinates
+                putfonts8_asc(binfo->vram, binfo->scrnx, 0, 0, COLOR_WHITE, s); // show coordinates
+                putblock8_8(binfo->vram, binfo->scrnx, 16, 16, mx, my, mcursor, 16); // show mouse cursor
             }
         }
     }
