@@ -36,10 +36,10 @@ init_keyboard(void)
 }
 
 typedef enum {
-  MOUSE_DEC_PHASE_WAITING_0XFA,
-  MOUSE_DEC_PHASE_RECEIVED_1ST_BYTE,
-  MOUSE_DEC_PHASE_RECEIVED_2ND_BYTE,
-  MOUSE_DEC_PHASE_RECEIVED_3RD_BYTE,
+    MOUSE_DEC_PHASE_WAITING_0XFA,
+    MOUSE_DEC_PHASE_RECEIVED_1ST_BYTE,
+    MOUSE_DEC_PHASE_RECEIVED_2ND_BYTE,
+    MOUSE_DEC_PHASE_RECEIVED_3RD_BYTE,
 } MouseDecPhase;
 
 typedef struct {
@@ -62,27 +62,27 @@ static
 int
 mouse_decode(MouseDec *mdec, Byte data)
 {
-  switch (mdec->phase) {
-    case MOUSE_DEC_PHASE_WAITING_0XFA:
-      if (data == 0xfa) {
-        mdec->phase = MOUSE_DEC_PHASE_RECEIVED_1ST_BYTE;
-      }
-      return 0;
-    case MOUSE_DEC_PHASE_RECEIVED_1ST_BYTE:
-      mdec->buf[0] = data;
-      mdec->phase = MOUSE_DEC_PHASE_RECEIVED_2ND_BYTE;
-      return 0;
-    case MOUSE_DEC_PHASE_RECEIVED_2ND_BYTE:
-      mdec->buf[1] = data;
-      mdec->phase = MOUSE_DEC_PHASE_RECEIVED_3RD_BYTE;
-      return 0;
-    case MOUSE_DEC_PHASE_RECEIVED_3RD_BYTE:
-      mdec->buf[2] = data;
-      mdec->phase = MOUSE_DEC_PHASE_RECEIVED_1ST_BYTE;
-      return 1;
-    default:
-      return -1; // unreachable
-  }
+    switch (mdec->phase) {
+        case MOUSE_DEC_PHASE_WAITING_0XFA:
+            if (data == 0xfa) {
+                mdec->phase = MOUSE_DEC_PHASE_RECEIVED_1ST_BYTE;
+            }
+            return 0;
+        case MOUSE_DEC_PHASE_RECEIVED_1ST_BYTE:
+            mdec->buf[0] = data;
+            mdec->phase = MOUSE_DEC_PHASE_RECEIVED_2ND_BYTE;
+            return 0;
+        case MOUSE_DEC_PHASE_RECEIVED_2ND_BYTE:
+            mdec->buf[1] = data;
+            mdec->phase = MOUSE_DEC_PHASE_RECEIVED_3RD_BYTE;
+            return 0;
+        case MOUSE_DEC_PHASE_RECEIVED_3RD_BYTE:
+            mdec->buf[2] = data;
+            mdec->phase = MOUSE_DEC_PHASE_RECEIVED_1ST_BYTE;
+            return 1;
+        default:
+            return -1; // unreachable
+    }
 }
 
 static
@@ -170,9 +170,9 @@ hari_main(void)
             keycode = fifo_dequeue(&mousefifo);
             _io_sti();
             if (mouse_decode(&mdec, keycode) != 0) {
-              sprintf(s, "%x %x %x", mdec.buf[0], mdec.buf[1], mdec.buf[2]);
-              boxfill8(binfo->vram, binfo->scrnx, COLOR_DARK_CYAN, 32, 16, 32 + 8*8 - 1, 31);
-              putfonts8_asc(binfo->vram, binfo->scrnx, 32, 16, COLOR_WHITE, s);
+                sprintf(s, "%x %x %x", mdec.buf[0], mdec.buf[1], mdec.buf[2]);
+                boxfill8(binfo->vram, binfo->scrnx, COLOR_DARK_CYAN, 32, 16, 32 + 8*8 - 1, 31);
+                putfonts8_asc(binfo->vram, binfo->scrnx, 32, 16, COLOR_WHITE, s);
             }
         }
     }
