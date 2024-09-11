@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include "nasmfunc.h"
 #include "common.h"
 #include "iolib.h"
@@ -6,6 +7,68 @@
 #include "int.h"
 #include "keyboard.h"
 #include "mouse.h"
+
+#define EFLAGS_AC_BIT 0x00040000
+#define CR0_CACHE_DISABLE 0x60000000
+
+unsigned int
+memtest_sub(unsigned int start, unsigned int end)
+{
+    unsigned int i, *p, old, pat0 = 0xaa55aa55, pat1 = 0x55aa55aa;
+    for (i = start; i <= end; i += 0x1000) {
+        p = (unsigned int *) (i + 0xffc); // check last 4 bytes
+        old = *p;
+        *p = pat0; // try writing
+        *p ^= 0xffffffff; // invert
+        if (*p != pat1) {
+not_memory:
+            *p = old;
+            break;
+        }
+        *p ^= 0xffffffff; // re-invert
+        if (*p != pat0) {
+            goto not_memory;
+        }
+        *p = old;
+    }
+    return i;
+}
+
+/* test how much memory can be used */
+static
+unsigned int
+memtest(unsigned int start, unsigned int end)
+{
+    bool is486 = false;
+    unsigned int eflg, cr0, i;
+
+    // check if CPU is 386 or 486
+    eflg = _io_load_eflags();
+    eflg |= EFLAGS_AC_BIT; // AC-bit = 1
+    _io_store_eflags(eflg);
+    eflg = _io_load_eflags();
+    if ((eflg & EFLAGS_AC_BIT) != 0) { // 386ではAC=1にしても自動で0に戻ってしまう
+        is486 = true;
+    }
+    eflg &= ~EFLAGS_AC_BIT; // AC-bit = 0
+    _io_store_eflags(eflg);
+
+    if (is486) {
+        cr0 = _load_cr0();
+        cr0 |= CR0_CACHE_DISABLE; // disable cache
+        _store_cr0(cr0);
+    }
+
+    i = memtest_sub(start, end);
+
+    if (is486) {
+        cr0 = _load_cr0();
+        cr0 &= ~CR0_CACHE_DISABLE; // enable cache
+        _store_cr0(cr0);
+    }
+
+    return i;
+}
 
 static
 void
@@ -54,8 +117,6 @@ hari_main(void)
 
     Byte *vram = binfo->vram;
 
-    putfonts8_asc(vram, binfo->scrnx, 40, 40, COLOR_WHITE, "Hello World!");
-
     char s0[20];
     sprintf(s0, "scrnx = %d", binfo->scrnx);
     putfonts8_asc(vram, binfo->scrnx, 40, 80, COLOR_WHITE, s0);
@@ -68,6 +129,10 @@ hari_main(void)
     putblock8_8(binfo->vram, binfo->scrnx, 16, 16, mx, my, mcursor, 16);
     sprintf(s0, "(%d, %d)", mx, my);
     putfonts8_asc(binfo->vram, binfo->scrnx, 0, 0, COLOR_WHITE, s0);
+
+    unsigned int i = memtest(0x00400000, 0xbfffffff) / (1024 * 1024);
+    sprintf(s0, "memory %dMB", i);
+    putfonts8_asc(binfo->vram, binfo->scrnx, 0, 32, COLOR_WHITE, s0);
 
     enable_mouse(&mdec);
 
