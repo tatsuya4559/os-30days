@@ -45,6 +45,7 @@ typedef enum {
 typedef struct {
     Byte buf[3];
     MouseDecPhase phase;
+    int x, y, btn;
 } MouseDec;
 
 static
@@ -69,8 +70,10 @@ mouse_decode(MouseDec *mdec, Byte data)
             }
             return 0;
         case MOUSE_DEC_PHASE_RECEIVED_1ST_BYTE:
-            mdec->buf[0] = data;
-            mdec->phase = MOUSE_DEC_PHASE_RECEIVED_2ND_BYTE;
+            if ((data & 0xc8) == 0x08) {
+                mdec->buf[0] = data;
+                mdec->phase = MOUSE_DEC_PHASE_RECEIVED_2ND_BYTE;
+            }
             return 0;
         case MOUSE_DEC_PHASE_RECEIVED_2ND_BYTE:
             mdec->buf[1] = data;
@@ -79,6 +82,16 @@ mouse_decode(MouseDec *mdec, Byte data)
         case MOUSE_DEC_PHASE_RECEIVED_3RD_BYTE:
             mdec->buf[2] = data;
             mdec->phase = MOUSE_DEC_PHASE_RECEIVED_1ST_BYTE;
+            mdec->btn = mdec->buf[0] & 0x07; // extract lower 3 bits
+            mdec->x = mdec->buf[1];
+            mdec->y = mdec->buf[2];
+            if ((mdec->buf[0] & 0x10) != 0) {
+                mdec->x |= 0xffffff00;
+            }
+            if ((mdec->buf[0] & 0x20) != 0) {
+                mdec->y |= 0xffffff00;
+            }
+            mdec->y = -mdec->y; // マウスではy方向の符号が画面と逆
             return 1;
         default:
             return -1; // unreachable
@@ -155,7 +168,8 @@ hari_main(void)
     MouseDec mdec;
     enable_mouse(&mdec);
 
-    Byte keycode, s[4];
+    Byte keycode;
+    char s[4];
     for (;;) {
         _io_cli(); // 割り込み禁止
         if (keyfifo.len == 0 && mousefifo.len == 0) {
@@ -170,8 +184,17 @@ hari_main(void)
             keycode = fifo_dequeue(&mousefifo);
             _io_sti();
             if (mouse_decode(&mdec, keycode) != 0) {
-                sprintf(s, "%x %x %x", mdec.buf[0], mdec.buf[1], mdec.buf[2]);
-                boxfill8(binfo->vram, binfo->scrnx, COLOR_DARK_CYAN, 32, 16, 32 + 8*8 - 1, 31);
+                sprintf(s, "[lcr %d %d]", mdec.x, mdec.y);
+                if ((mdec.btn & 0x01) != 0) {
+                    s[1] = 'L';
+                }
+                if ((mdec.btn & 0x02) != 0) {
+                    s[3] = 'R';
+                }
+                if ((mdec.btn & 0x04) != 0) {
+                    s[2] = 'C';
+                }
+                boxfill8(binfo->vram, binfo->scrnx, COLOR_DARK_CYAN, 32, 16, 32 + 15*8 - 1, 31);
                 putfonts8_asc(binfo->vram, binfo->scrnx, 32, 16, COLOR_WHITE, s);
             }
         }
