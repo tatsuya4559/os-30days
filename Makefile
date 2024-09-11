@@ -5,7 +5,7 @@ CC := gcc
 # -nostdlib  標準ライブラリをリンクしないように指示します。カーネルやブートローダなどの特殊なプログラムを作成する際に使用されます。このオプションを使うと、標準ライブラリ関数（例：printfなど）が利用できなくなります。
 CFLAGS := -march=i486 -m32 -fno-pic -nostdlib
 
-C_SRC := iolib.c graphic.c dsctbl.c int.c fifo.c
+C_SRC := iolib.c graphic.c dsctbl.c int.c fifo.c keyboard.c mouse.c
 C_OBJ := $(patsubst %.c,%.o,$(C_SRC))
 
 all: run
