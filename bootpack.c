@@ -154,6 +154,7 @@ hari_main(void)
     Byte keybuf[32], mousebuf[128];
     fifo_init(&keyfifo, 32, keybuf);
     fifo_init(&mousefifo, 128, mousebuf);
+    MouseDec mdec;
 
     _io_out8(PIC0_IMR, 0xf9); // PIC1とキーボードを許可
     _io_out8(PIC1_IMR, 0xef); // マウスを許可
@@ -165,7 +166,6 @@ hari_main(void)
     set_screen(binfo);
     show_message(binfo);
 
-    MouseDec mdec;
     enable_mouse(&mdec);
 
     Byte keycode;
