@@ -35,14 +35,54 @@ init_keyboard(void)
     _io_out8(PORT_KEYDAT, KBC_MODE);
 }
 
+typedef enum {
+  MOUSE_DEC_PHASE_WAITING_0XFA,
+  MOUSE_DEC_PHASE_RECEIVED_1ST_BYTE,
+  MOUSE_DEC_PHASE_RECEIVED_2ND_BYTE,
+  MOUSE_DEC_PHASE_RECEIVED_3RD_BYTE,
+} MouseDecPhase;
+
+typedef struct {
+    Byte buf[3];
+    MouseDecPhase phase;
+} MouseDec;
+
 static
 void
-enable_mouse(void)
+enable_mouse(MouseDec *mdec)
 {
     wait_KBC_sendready();
     _io_out8(PORT_KEYCMD, KEYCMD_SENDTO_MOUSE);
     wait_KBC_sendready();
     _io_out8(PORT_KEYDAT, MOUSECMD_ENABLE);
+    mdec->phase = MOUSE_DEC_PHASE_WAITING_0XFA;
+}
+
+static
+int
+mouse_decode(MouseDec *mdec, Byte data)
+{
+  switch (mdec->phase) {
+    case MOUSE_DEC_PHASE_WAITING_0XFA:
+      if (data == 0xfa) {
+        mdec->phase = MOUSE_DEC_PHASE_RECEIVED_1ST_BYTE;
+      }
+      return 0;
+    case MOUSE_DEC_PHASE_RECEIVED_1ST_BYTE:
+      mdec->buf[0] = data;
+      mdec->phase = MOUSE_DEC_PHASE_RECEIVED_2ND_BYTE;
+      return 0;
+    case MOUSE_DEC_PHASE_RECEIVED_2ND_BYTE:
+      mdec->buf[1] = data;
+      mdec->phase = MOUSE_DEC_PHASE_RECEIVED_3RD_BYTE;
+      return 0;
+    case MOUSE_DEC_PHASE_RECEIVED_3RD_BYTE:
+      mdec->buf[2] = data;
+      mdec->phase = MOUSE_DEC_PHASE_RECEIVED_1ST_BYTE;
+      return 1;
+    default:
+      return -1; // unreachable
+  }
 }
 
 static
@@ -112,9 +152,8 @@ hari_main(void)
     set_screen(binfo);
     show_message(binfo);
 
-    Byte mouse_dbuf[3], mouse_phase;
-    enable_mouse();
-    mouse_phase = 0; // to waiting 0xfa phase
+    MouseDec mdec;
+    enable_mouse(&mdec);
 
     Byte keycode, s[4];
     for (;;) {
@@ -130,28 +169,10 @@ hari_main(void)
         } else if (mousefifo.len != 0) {
             keycode = fifo_dequeue(&mousefifo);
             _io_sti();
-
-            switch (mouse_phase) {
-              case 0:
-                if (keycode == 0xfa) {
-                    mouse_phase = 1;
-                }
-                break;
-              case 1:
-                mouse_dbuf[0] = keycode;
-                mouse_phase = 2;
-                break;
-              case 2:
-                mouse_dbuf[1] = keycode;
-                mouse_phase = 3;
-                break;
-              case 3:
-                mouse_dbuf[2] = keycode;
-                mouse_phase = 1;
-                sprintf(s, "%x %x %x", mouse_dbuf[0], mouse_dbuf[1], mouse_dbuf[2]);
-                boxfill8(binfo->vram, binfo->scrnx, COLOR_DARK_CYAN, 32, 16, 32 + 8*8 - 1, 31);
-                putfonts8_asc(binfo->vram, binfo->scrnx, 32, 16, COLOR_WHITE, s);
-                break;
+            if (mouse_decode(&mdec, keycode) != 0) {
+              sprintf(s, "%x %x %x", mdec.buf[0], mdec.buf[1], mdec.buf[2]);
+              boxfill8(binfo->vram, binfo->scrnx, COLOR_DARK_CYAN, 32, 16, 32 + 8*8 - 1, 31);
+              putfonts8_asc(binfo->vram, binfo->scrnx, 32, 16, COLOR_WHITE, s);
             }
         }
     }
