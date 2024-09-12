@@ -160,3 +160,17 @@ memman_free(MemoryManager *man, unsigned int addr, unsigned int size)
     man->lostsize += size;
     return -1; // fail
 }
+
+unsigned int
+memman_alloc_4k(MemoryManager *memman, unsigned int size)
+{
+    size = (size + 0xfff) & 0xfffff000; // 0x1000 - 1 を足してから下位3オクテットを切り捨てると切り上げになる
+    return memman_alloc(memman, size);
+}
+
+int
+memman_free_4k(MemoryManager *memman, unsigned int addr, unsigned int size)
+{
+    size = (size + 0xfff) & 0xfffff000;
+    return memman_free(memman, addr, size);
+}
