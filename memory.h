@@ -18,5 +18,7 @@ void memman_init(MemoryManager *man);
 unsigned int memman_total(MemoryManager *man);
 unsigned int memman_alloc(MemoryManager *man, unsigned int size);
 int memman_free(MemoryManager *man, unsigned int addr, unsigned int size);
+unsigned int memman_alloc_4k(MemoryManager *memman, unsigned int size);
+int memman_free_4k(MemoryManager *memman, unsigned int addr, unsigned int size);
 
 #endif /* _MEMORY_H_ */

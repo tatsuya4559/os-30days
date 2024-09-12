@@ -137,3 +137,24 @@ boxfill8(Byte *vram, int xsize, Byte c, int x0, int y0, int x1, int y1)
         }
     }
 }
+
+void
+init_screen8(Byte *vram, int x, int y)
+{
+    boxfill8(vram, x, COLOR_DARK_CYAN, 0, 0, x - 1, y - 29);
+    boxfill8(vram, x, COLOR_LIGHT_GRAY, 0, y - 28, x - 1, y - 28);
+    boxfill8(vram, x, COLOR_WHITE, 0, y - 27, x - 1, y - 27);
+    boxfill8(vram, x, COLOR_LIGHT_GRAY, 0, y - 26, x - 1, y - 1);
+
+    boxfill8(vram, x, COLOR_WHITE, 3, y - 24, 59, y - 24);
+    boxfill8(vram, x, COLOR_WHITE, 2, y - 24, 2, y - 4);
+    boxfill8(vram, x, COLOR_DARK_GRAY, 3, y - 4, 59, y - 4);
+    boxfill8(vram, x, COLOR_DARK_GRAY, 59, y - 23, 59, y - 5);
+    boxfill8(vram, x, COLOR_BLACK, 2, y - 3, 59, y - 3);
+    boxfill8(vram, x, COLOR_BLACK, 60, y - 24, 60, y - 3);
+
+    boxfill8(vram, x, COLOR_DARK_GRAY, x - 47, y - 24, x - 4, y - 24);
+    boxfill8(vram, x, COLOR_DARK_GRAY, x - 47, y - 23, x - 47, y - 4);
+    boxfill8(vram, x, COLOR_WHITE, x - 47, y - 3, x - 4, y - 3);
+    boxfill8(vram, x, COLOR_WHITE, x - 3, y - 24, x - 3, y - 3);
+}
