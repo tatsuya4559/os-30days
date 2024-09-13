@@ -64,7 +64,7 @@ hari_main(void)
     sprintf(s0, "memory %dMB   free: %dKB", memtotal / (1024 * 1024), memman_total(memman) / 1024);
     putfonts8_asc(buf_back, binfo->scrnx, 0, 32, COLOR_WHITE, s0);
 
-    layer_refresh(layerctl);
+    layer_refresh(layerctl, layer_back, 0, 0, binfo->scrnx, 48);
 
     Byte keycode;
     char s[4];
@@ -78,6 +78,7 @@ hari_main(void)
             sprintf(s0, "%x", keycode);
             boxfill8(buf_back, binfo->scrnx, COLOR_DARK_CYAN, 0, 16, 15, 31);
             putfonts8_asc(buf_back, binfo->scrnx, 0, 16, COLOR_WHITE, s0);
+            layer_refresh(layerctl, layer_back, 0, 16, 16, 32);
         } else if (mousefifo.len != 0) {
             keycode = fifo_dequeue(&mousefifo);
             _io_sti();
@@ -94,6 +95,7 @@ hari_main(void)
                 }
                 boxfill8(buf_back, binfo->scrnx, COLOR_DARK_CYAN, 32, 16, 32 + 15*8 - 1, 31);
                 putfonts8_asc(buf_back, binfo->scrnx, 32, 16, COLOR_WHITE, s0);
+                layer_refresh(layerctl, layer_back, 32, 16, 32 + 15*8, 32);
 
                 // move mouse cursor
                 mx += mdec.x;
@@ -113,6 +115,7 @@ hari_main(void)
                 sprintf(s, "(%d, %d)", mx, my);
                 boxfill8(buf_back, binfo->scrnx, COLOR_DARK_CYAN, 0, 0, 79, 15); // hide coordinates
                 putfonts8_asc(buf_back, binfo->scrnx, 0, 0, COLOR_WHITE, s); // show coordinates
+                layer_refresh(layerctl, layer_back, 0, 0, 80, 16);
                 layer_slide(layerctl, layer_mouse, mx, my);
             }
         }

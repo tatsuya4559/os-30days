@@ -27,7 +27,7 @@ typedef struct {
 LayerCtl *layerctl_init(MemoryManager *memman, Byte *vram, int xsize, int ysize);
 Layer *layer_alloc(LayerCtl *ctl);
 void layer_setbuf(Layer *layer, Byte *buf, int xsize, int ysize, int col_inv);
-void layer_refresh(LayerCtl *ctl);
+void layer_refresh(LayerCtl *ctl, Layer *layer, int bx0, int by0, int bx1, int by1);
 void layer_updown(LayerCtl *ctl, Layer *layer, int zindex);
 void layer_slide(LayerCtl *ctl, Layer *layer, int vx0, int vy0);
 void layer_free(LayerCtl *ctl, Layer *layer);

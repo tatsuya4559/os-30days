@@ -71,24 +71,10 @@ layer_refreshsub(LayerCtl *ctl, int vx0, int vy0, int vx1, int vy1)
 }
 
 void
-layer_refresh(LayerCtl *ctl)
+layer_refresh(LayerCtl *ctl, Layer *layer, int bx0, int by0, int bx1, int by1)
 {
-    int bx, by, vx, vy;
-    Byte *buf, c, *vram = ctl->vram;
-    Layer *layer;
-    for (int i = 0; i <= ctl->top_zindex; i++) {
-        layer = ctl->layers[i];
-        buf = layer->buf;
-        for (by = 0; by < layer->bysize; by++) {
-            vy = layer->vy0 + by;
-            for (bx = 0; bx < layer->bxsize; bx++) {
-                vx = layer->vx0 + bx;
-                c = buf[by * layer->bxsize + bx];
-                if (c != layer->col_inv) {
-                    vram[vy * ctl->xsize + vx] = c;
-                }
-            }
-        }
+    if (layer->zindex >= 0) {
+        layer_refreshsub(ctl, layer->vx0 + bx0, layer->vy0 + by0, layer->vx0 + bx1, layer->vy0 + by1);
     }
 }
 
@@ -123,7 +109,7 @@ layer_updown(LayerCtl *ctl, Layer *layer, int zindex)
             }
             ctl->top_zindex--;
         }
-        layer_refresh(ctl);
+        layer_refreshsub(ctl, layer->vx0, layer->vy0, layer->vx0 + layer->bxsize, layer->vy0 + layer->bysize);
     } else if (old_zindex < zindex) {
         if (old_zindex >= 0) {
             for (int i = old_zindex; i < zindex; i++) {
@@ -139,7 +125,7 @@ layer_updown(LayerCtl *ctl, Layer *layer, int zindex)
             ctl->layers[zindex] = layer;
             ctl->top_zindex++;
         }
-        layer_refresh(ctl);
+        layer_refreshsub(ctl, layer->vx0, layer->vy0, layer->vx0 + layer->bxsize, layer->vy0 + layer->bysize);
     }
 }
 
