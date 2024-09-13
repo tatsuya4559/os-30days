@@ -44,6 +44,32 @@ layer_setbuf(Layer *layer, Byte *buf, int xsize, int ysize, int col_inv)
     layer->col_inv = col_inv;
 }
 
+static
+void
+layer_refreshsub(LayerCtl *ctl, int vx0, int vy0, int vx1, int vy1)
+{
+    Layer *layer;
+    Byte *buf, c, *vram = ctl->vram;
+    for (int i = 0; i <= ctl->top_zindex; i++) {
+        layer = ctl->layers[i];
+        buf = layer->buf;
+        for (int by = 0; by < layer->bysize; by++) {
+            int vy = layer->vy0 + by;
+            if (vy0 <= vy && vy < vy1) {
+                for (int bx = 0; bx < layer->bxsize; bx++) {
+                    int vx = layer->vx0 + bx;
+                    if (vx0 <= vx && vx < vx1) {
+                        c = buf[by * layer->bxsize + bx];
+                        if (c != layer->col_inv) {
+                            vram[vy * ctl->xsize + vx] = c;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 void
 layer_refresh(LayerCtl *ctl)
 {
@@ -120,10 +146,13 @@ layer_updown(LayerCtl *ctl, Layer *layer, int zindex)
 void
 layer_slide(LayerCtl *ctl, Layer *layer, int vx0, int vy0)
 {
+    int old_vx0 = layer->vx0;
+    int old_vy0 = layer->vy0;
     layer->vx0 = vx0;
     layer->vy0 = vy0;
     if (layer->zindex >= 0) {
-        layer_refresh(ctl);
+        layer_refreshsub(ctl, old_vx0, old_vy0, old_vx0 + layer->bxsize, old_vy0 + layer->bysize);
+        layer_refreshsub(ctl, vx0, vy0, vx0 + layer->bxsize, vy0 + layer->bysize);
     }
 }
 
