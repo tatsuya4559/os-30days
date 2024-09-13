@@ -50,20 +50,33 @@ layer_refreshsub(LayerCtl *ctl, int vx0, int vy0, int vx1, int vy1)
 {
     Layer *layer;
     Byte *buf, c, *vram = ctl->vram;
+    int bx0, by0, bx1, by1;
     for (int i = 0; i <= ctl->top_zindex; i++) {
         layer = ctl->layers[i];
         buf = layer->buf;
-        for (int by = 0; by < layer->bysize; by++) {
+        bx0 = vx0 - layer->vx0;
+        by0 = vy0 - layer->vy0;
+        bx1 = vx1 - layer->vx0;
+        by1 = vy1 - layer->vy0;
+        if (bx0 < 0) {
+            bx0 = 0;
+        }
+        if (by0 < 0) {
+            by0 = 0;
+        }
+        if (bx1 > layer->bxsize) {
+            bx1 = layer->bxsize;
+        }
+        if (by1 > layer->bysize) {
+            by1 = layer->bysize;
+        }
+        for (int by = by0; by < by1; by++) {
             int vy = layer->vy0 + by;
-            if (vy0 <= vy && vy < vy1) {
-                for (int bx = 0; bx < layer->bxsize; bx++) {
-                    int vx = layer->vx0 + bx;
-                    if (vx0 <= vx && vx < vx1) {
-                        c = buf[by * layer->bxsize + bx];
-                        if (c != layer->col_inv) {
-                            vram[vy * ctl->xsize + vx] = c;
-                        }
-                    }
+            for (int bx = bx0; bx < bx1; bx++) {
+                int vx = layer->vx0 + bx;
+                c = buf[by * layer->bxsize + bx];
+                if (c != layer->col_inv) {
+                    vram[vy * ctl->xsize + vx] = c;
                 }
             }
         }
