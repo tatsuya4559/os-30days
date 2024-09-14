@@ -14,6 +14,7 @@ layerctl_init(MemoryManager *memman, Byte *vram, int xsize, int ysize)
     ctl->top_zindex = -1; // no layer
     for (int i = 0; i < MAX_LAYERS; i++) {
         ctl->layers0[i].flags = LAYER_UNUSED;
+        ctl->layers0[i].ctl = ctl;
     }
 
 err:
@@ -98,16 +99,17 @@ layer_refreshsub(LayerCtl *ctl, int vx0, int vy0, int vx1, int vy1)
 }
 
 void
-layer_refresh(LayerCtl *ctl, Layer *layer, int bx0, int by0, int bx1, int by1)
+layer_refresh(Layer *layer, int bx0, int by0, int bx1, int by1)
 {
     if (layer->zindex >= 0) {
-        layer_refreshsub(ctl, layer->vx0 + bx0, layer->vy0 + by0, layer->vx0 + bx1, layer->vy0 + by1);
+        layer_refreshsub(layer->ctl, layer->vx0 + bx0, layer->vy0 + by0, layer->vx0 + bx1, layer->vy0 + by1);
     }
 }
 
 void
-layer_updown(LayerCtl *ctl, Layer *layer, int zindex)
+layer_updown(Layer *layer, int zindex)
 {
+    LayerCtl *ctl = layer->ctl;
     int old_zindex = layer->zindex;
 
     // adjust zindex
@@ -157,23 +159,23 @@ layer_updown(LayerCtl *ctl, Layer *layer, int zindex)
 }
 
 void
-layer_slide(LayerCtl *ctl, Layer *layer, int vx0, int vy0)
+layer_slide(Layer *layer, int vx0, int vy0)
 {
     int old_vx0 = layer->vx0;
     int old_vy0 = layer->vy0;
     layer->vx0 = vx0;
     layer->vy0 = vy0;
     if (layer->zindex >= 0) {
-        layer_refreshsub(ctl, old_vx0, old_vy0, old_vx0 + layer->bxsize, old_vy0 + layer->bysize);
-        layer_refreshsub(ctl, vx0, vy0, vx0 + layer->bxsize, vy0 + layer->bysize);
+        layer_refreshsub(layer->ctl, old_vx0, old_vy0, old_vx0 + layer->bxsize, old_vy0 + layer->bysize);
+        layer_refreshsub(layer->ctl, vx0, vy0, vx0 + layer->bxsize, vy0 + layer->bysize);
     }
 }
 
 void
-layer_free(LayerCtl *ctl, Layer *layer)
+layer_free(Layer *layer)
 {
     if (layer->zindex >= 0) {
-        layer_updown(ctl, layer, -1);
+        layer_updown(layer, -1);
     }
     layer->flags = LAYER_UNUSED;
 }
