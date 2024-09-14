@@ -51,6 +51,20 @@ layer_refreshsub(LayerCtl *ctl, int vx0, int vy0, int vx1, int vy1)
     Layer *layer;
     Byte *buf, c, *vram = ctl->vram;
     int bx0, by0, bx1, by1;
+
+    if (vx0 < 0) {
+        vx0 = 0;
+    }
+    if (vy0 < 0) {
+        vy0 = 0;
+    }
+    if (vx1 > ctl->xsize) {
+        vx1 = ctl->xsize;
+    }
+    if (vy1 > ctl->ysize) {
+        vy1 = ctl->ysize;
+    }
+
     for (int i = 0; i <= ctl->top_zindex; i++) {
         layer = ctl->layers[i];
         buf = layer->buf;
