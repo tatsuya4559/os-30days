@@ -12,6 +12,58 @@
 #define MEMMAN_ADDR 0x003c0000
 
 void
+make_window8(Byte *buf, int xsize, int ysize, char *title)
+{
+    static char closebtn[14][16] = {
+        "OOOOOOOOOOOOOOO@",
+        "OQQQQQQQQQQQQQ$@",
+        "OQQQQQQQQQQQQQ$@",
+        "OQQQ@@QQQQ@@QQ$@",
+        "OQQQQ@@QQ@@QQQ$@",
+        "OQQQQQ@@@@QQQQ$@",
+        "OQQQQQQ@@QQQQQ$@",
+        "OQQQQQ@@@@QQQQ$@",
+        "OQQQQ@@QQ@@QQQ$@",
+        "OQQQ@@QQQQ@@QQ$@",
+        "OQQQQQQQQQQQQQ$@",
+        "OQQQQQQQQQQQQQ$@",
+        "O$$$$$$$$$$$$$$@",
+        "@@@@@@@@@@@@@@@@",
+    };
+    boxfill8(buf,  xsize,  COLOR_DARK_GRAY,   0,        0,        xsize-1,  0);
+    boxfill8(buf,  xsize,  COLOR_WHITE,       1,        1,        xsize-2,  1);
+    boxfill8(buf,  xsize,  COLOR_DARK_GRAY,   0,        0,        0,        ysize-1);
+    boxfill8(buf,  xsize,  COLOR_WHITE,       1,        1,        1,        ysize-2);
+    boxfill8(buf,  xsize,  COLOR_WHITE,       xsize-2,  1,        xsize-2,  ysize-2);
+    boxfill8(buf,  xsize,  COLOR_DARK_GRAY,   xsize-1,  0,        xsize-1,  ysize-1);
+    boxfill8(buf,  xsize,  COLOR_LIGHT_GRAY,  2,        2,        xsize-3,  ysize-3);
+    boxfill8(buf,  xsize,  COLOR_DARK_BLUE,   3,        3,        xsize-4,  20);
+    boxfill8(buf,  xsize,  COLOR_DARK_GRAY,   0,        ysize-1,  xsize-1,  ysize-1);
+    boxfill8(buf,  xsize,  COLOR_DARK_GRAY,   1,        ysize-2,  xsize-2,  ysize-2);
+    putfonts8_asc(buf, xsize, 24, 4, COLOR_WHITE, title);
+    for (int y = 0; y < 14; y++) {
+        for (int x = 0; x < 16; x++) {
+            char c = closebtn[y][x];
+            switch (c) {
+            case '@':
+                c = COLOR_BLACK;
+                break;
+            case '$':
+                c = COLOR_DARK_GRAY;
+                break;
+            case 'Q':
+                c = COLOR_LIGHT_GRAY;
+                break;
+            default:
+                c = COLOR_WHITE;
+                break;
+            }
+            buf[(5+y)*xsize + (xsize-21+x)] = c;
+        }
+    }
+}
+
+void
 hari_main(void)
 {
     init_gdtidt();
@@ -38,24 +90,34 @@ hari_main(void)
     memman_free(memman, 0x00400000, memtotal - 0x00400000);
 
     LayerCtl *layerctl;
-    Layer *layer_back, *layer_mouse;
-    Byte *buf_back, buf_mouse[256];
+    Layer *layer_back, *layer_mouse, *layer_win;
+    Byte *buf_back, buf_mouse[256], *buf_win;
 
     init_palette();
     layerctl = layerctl_init(memman, binfo->vram, binfo->scrnx, binfo->scrny);
     layer_back = layer_alloc(layerctl);
     layer_mouse = layer_alloc(layerctl);
+    layer_win = layer_alloc(layerctl);
     buf_back = (Byte *) memman_alloc_4k(memman, binfo->scrnx * binfo->scrny);
+    buf_win = (Byte *) memman_alloc_4k(memman, 160 * 68);
     layer_setbuf(layer_back, buf_back, binfo->scrnx, binfo->scrny, -1);
     layer_setbuf(layer_mouse, buf_mouse, 16, 16, 99);
+    layer_setbuf(layer_win, buf_win, 160, 68, -1);
     init_screen8(buf_back, binfo->scrnx, binfo->scrny);
     init_mouse_cursor8(buf_mouse, COLOR_TRANSPARENT);
+    make_window8(buf_win, 160, 68, "window");
+
+    putfonts8_asc(buf_win, 160, 24, 28, COLOR_BLACK, "Welcome to");
+    putfonts8_asc(buf_win, 160, 24, 44, COLOR_BLACK, "Haribote-OS!");
+
     layer_slide(layer_back, 0, 0);
     int mx = (binfo->scrnx - 16) / 2;
     int my = (binfo->scrny - 28 - 16) / 2;
     layer_slide(layer_mouse, mx, my);
+    layer_slide(layer_win, 80, 72);
     layer_updown(layer_back, 0);
-    layer_updown(layer_mouse, 1);
+    layer_updown(layer_win, 1);
+    layer_updown(layer_mouse, 2);
 
     char s0[20];
     sprintf(s0, "(%d, %d)", mx, my);
