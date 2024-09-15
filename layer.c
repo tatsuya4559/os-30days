@@ -47,7 +47,7 @@ layer_setbuf(Layer *layer, Byte *buf, int xsize, int ysize, int col_inv)
 
 static
 void
-layer_refreshsub(LayerCtl *ctl, int vx0, int vy0, int vx1, int vy1)
+layer_refreshsub(LayerCtl *ctl, int vx0, int vy0, int vx1, int vy1, int z0)
 {
     Layer *layer;
     Byte *buf, c, *vram = ctl->vram;
@@ -66,7 +66,7 @@ layer_refreshsub(LayerCtl *ctl, int vx0, int vy0, int vx1, int vy1)
         vy1 = ctl->ysize;
     }
 
-    for (int i = 0; i <= ctl->top_zindex; i++) {
+    for (int i = z0; i <= ctl->top_zindex; i++) {
         layer = ctl->layers[i];
         buf = layer->buf;
         bx0 = vx0 - layer->vx0;
@@ -102,7 +102,7 @@ void
 layer_refresh(Layer *layer, int bx0, int by0, int bx1, int by1)
 {
     if (layer->zindex >= 0) {
-        layer_refreshsub(layer->ctl, layer->vx0 + bx0, layer->vy0 + by0, layer->vx0 + bx1, layer->vy0 + by1);
+        layer_refreshsub(layer->ctl, layer->vx0 + bx0, layer->vy0 + by0, layer->vx0 + bx1, layer->vy0 + by1, layer->zindex);
     }
 }
 
@@ -129,6 +129,7 @@ layer_updown(Layer *layer, int zindex)
                 ctl->layers[i]->zindex = i;
             }
             ctl->layers[zindex] = layer;
+            layer_refreshsub(ctl, layer->vx0, layer->vy0, layer->vx0 + layer->bxsize, layer->vy0 + layer->bysize, layer->zindex + 1);
         } else {
             if (ctl->top_zindex > old_zindex) {
                 for (int i = old_zindex; i < ctl->top_zindex; i++) {
@@ -137,8 +138,8 @@ layer_updown(Layer *layer, int zindex)
                 }
             }
             ctl->top_zindex--;
+            layer_refreshsub(ctl, layer->vx0, layer->vy0, layer->vx0 + layer->bxsize, layer->vy0 + layer->bysize, 0);
         }
-        layer_refreshsub(ctl, layer->vx0, layer->vy0, layer->vx0 + layer->bxsize, layer->vy0 + layer->bysize);
     } else if (old_zindex < zindex) {
         if (old_zindex >= 0) {
             for (int i = old_zindex; i < zindex; i++) {
@@ -154,7 +155,7 @@ layer_updown(Layer *layer, int zindex)
             ctl->layers[zindex] = layer;
             ctl->top_zindex++;
         }
-        layer_refreshsub(ctl, layer->vx0, layer->vy0, layer->vx0 + layer->bxsize, layer->vy0 + layer->bysize);
+        layer_refreshsub(ctl, layer->vx0, layer->vy0, layer->vx0 + layer->bxsize, layer->vy0 + layer->bysize, layer->zindex);
     }
 }
 
@@ -166,8 +167,8 @@ layer_slide(Layer *layer, int vx0, int vy0)
     layer->vx0 = vx0;
     layer->vy0 = vy0;
     if (layer->zindex >= 0) {
-        layer_refreshsub(layer->ctl, old_vx0, old_vy0, old_vx0 + layer->bxsize, old_vy0 + layer->bysize);
-        layer_refreshsub(layer->ctl, vx0, vy0, vx0 + layer->bxsize, vy0 + layer->bysize);
+        layer_refreshsub(layer->ctl, old_vx0, old_vy0, old_vx0 + layer->bxsize, old_vy0 + layer->bysize, 0);
+        layer_refreshsub(layer->ctl, vx0, vy0, vx0 + layer->bxsize, vy0 + layer->bysize, layer->zindex);
     }
 }
 
