@@ -66,17 +66,20 @@ make_window8(Byte *buf, int xsize, int ysize, char *title)
 void
 hari_main(void)
 {
+    BootInfo *binfo = (BootInfo *) ADR_BOOTINFO;
+    Byte keybuf[32], mousebuf[128];
+    MouseDec mdec;
+    MemoryManager *memman = (MemoryManager *) MEMMAN_ADDR;
+    LayerCtl *layerctl;
+    Layer *layer_back, *layer_mouse, *layer_win;
+    Byte *buf_back, buf_mouse[256], *buf_win;
+
     init_gdtidt();
     init_pic();
     _io_sti();
 
-    BootInfo *binfo = (BootInfo *) ADR_BOOTINFO;
-    MemoryManager *memman = (MemoryManager *) MEMMAN_ADDR;
-
-    Byte keybuf[32], mousebuf[128];
     fifo_init(&keyfifo, 32, keybuf);
     fifo_init(&mousefifo, 128, mousebuf);
-    MouseDec mdec;
 
     _io_out8(PIC0_IMR, 0xf9); // PIC1とキーボードを許可
     _io_out8(PIC1_IMR, 0xef); // マウスを許可
@@ -88,10 +91,6 @@ hari_main(void)
     memman_init(memman);
     memman_free(memman, 0x00001000, 0x0009e000);
     memman_free(memman, 0x00400000, memtotal - 0x00400000);
-
-    LayerCtl *layerctl;
-    Layer *layer_back, *layer_mouse, *layer_win;
-    Byte *buf_back, buf_mouse[256], *buf_win;
 
     init_palette();
     layerctl = layerctl_init(memman, binfo->vram, binfo->scrnx, binfo->scrny);
