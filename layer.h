@@ -11,6 +11,8 @@ typedef enum {
 
 struct LayerCtl_tag;
 
+typedef unsigned char LayerId;
+
 typedef struct {
     Byte *buf;
     int bxsize, bysize, vx0, vy0, col_inv, zindex;
@@ -22,6 +24,7 @@ typedef struct {
 
 typedef struct LayerCtl_tag {
     Byte *vram;
+    LayerId *map;
     int xsize, ysize, top_zindex;
     Layer *layers[MAX_LAYERS]; // layer pointers ordered by zindex
     Layer layers0[MAX_LAYERS]; // real layer data
