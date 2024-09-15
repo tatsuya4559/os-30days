@@ -98,16 +98,13 @@ hari_main(void)
     layer_mouse = layer_alloc(layerctl);
     layer_win = layer_alloc(layerctl);
     buf_back = (Byte *) memman_alloc_4k(memman, binfo->scrnx * binfo->scrny);
-    buf_win = (Byte *) memman_alloc_4k(memman, 160 * 68);
+    buf_win = (Byte *) memman_alloc_4k(memman, 160 * 52);
     layer_setbuf(layer_back, buf_back, binfo->scrnx, binfo->scrny, -1);
     layer_setbuf(layer_mouse, buf_mouse, 16, 16, 99);
-    layer_setbuf(layer_win, buf_win, 160, 68, -1);
+    layer_setbuf(layer_win, buf_win, 160, 52, -1);
     init_screen8(buf_back, binfo->scrnx, binfo->scrny);
     init_mouse_cursor8(buf_mouse, COLOR_TRANSPARENT);
-    make_window8(buf_win, 160, 68, "window");
-
-    putfonts8_asc(buf_win, 160, 24, 28, COLOR_BLACK, "Welcome to");
-    putfonts8_asc(buf_win, 160, 24, 44, COLOR_BLACK, "Haribote-OS!");
+    make_window8(buf_win, 160, 52, "counter");
 
     layer_slide(layer_back, 0, 0);
     int mx = (binfo->scrnx - 16) / 2;
@@ -129,10 +126,17 @@ hari_main(void)
 
     Byte keycode;
     char s[4];
+    int count = 0;
     for (;;) {
+        count++;
+        sprintf(s0, "%d", count);
+        boxfill8(buf_win, 160, COLOR_LIGHT_GRAY, 40, 28, 119, 43);
+        putfonts8_asc(buf_win, 160, 40, 28, COLOR_WHITE, s0);
+        layer_refresh(layer_win, 40, 28, 120, 44);
+
         _io_cli(); // 割り込み禁止
         if (keyfifo.len == 0 && mousefifo.len == 0) {
-            _io_stihlt();
+            _io_sti();
         } else if (keyfifo.len != 0) {
             keycode = fifo_dequeue(&keyfifo);
             _io_sti(); // 割り込み禁止解除
