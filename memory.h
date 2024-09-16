@@ -6,12 +6,12 @@ unsigned int memtest(unsigned int start, unsigned int end);
 #define MEMMAN_FREES 4090
 
 typedef struct {
-    unsigned int addr, size;
+  unsigned int addr, size;
 } FreeInfo;
 
 typedef struct {
-    int frees, maxfrees, lostsize, losts;
-    FreeInfo free[MEMMAN_FREES];
+  int frees, maxfrees, lostsize, losts;
+  FreeInfo free[MEMMAN_FREES];
 } MemoryManager;
 
 void memman_init(MemoryManager *man);
