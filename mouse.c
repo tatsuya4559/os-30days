@@ -3,7 +3,7 @@
 #include "mouse.h"
 
 void
-enable_mouse(MouseDec *mdec)
+enable_mouse(MouseDecoder *mdec)
 {
     wait_KBC_sendready();
     _io_out8(PORT_KEYCMD, KEYCMD_SENDTO_MOUSE);
@@ -13,7 +13,7 @@ enable_mouse(MouseDec *mdec)
 }
 
 int
-mouse_decode(MouseDec *mdec, Byte data)
+mouse_decode(MouseDecoder *mdec, Byte data)
 {
     switch (mdec->phase) {
         case MOUSE_DEC_PHASE_WAITING_0XFA:
