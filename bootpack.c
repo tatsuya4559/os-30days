@@ -8,6 +8,7 @@
 #include "mouse.h"
 #include "memory.h"
 #include "layer.h"
+#include "timer.h"
 
 #define MEMMAN_ADDR 0x003c0000
 
@@ -80,6 +81,8 @@ hari_main(void)
 
     fifo_init(&keyfifo, 32, keybuf);
     fifo_init(&mousefifo, 128, mousebuf);
+
+    init_pit();
 
     _io_out8(PIC0_IMR, 0xf9); // PIC1とキーボードを許可
     _io_out8(PIC1_IMR, 0xef); // マウスを許可

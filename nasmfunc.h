@@ -17,6 +17,7 @@ extern void _load_idtr(int limit, int addr);
 extern int _load_cr0(void);
 extern void _store_cr0(int cr0);
 
+extern void _asm_inthandler20(void);
 extern void _asm_inthandler21(void);
 extern void _asm_inthandler2c(void);
 
