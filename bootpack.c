@@ -75,12 +75,20 @@ void
 hari_main(void)
 {
   BootInfo *binfo = (BootInfo *) ADR_BOOTINFO;
-  Byte keybuf[KEY_BUF_SIZE], mousebuf[MOUSE_BUF_SIZE];
   MouseDecoder mouse_decoder;
   MemoryManager *mem_manager = (MemoryManager *) MEMMAN_ADDR;
   LayerController *layerctl;
-  Layer *layer_back, *layer_mouse, *layer_win;
-  Byte *buf_back, buf_mouse[256], *buf_win;
+
+  Byte keybuf[KEY_BUF_SIZE];
+  Byte mousebuf[MOUSE_BUF_SIZE];
+
+  Layer *layer_back;
+  Layer *layer_mouse;
+  Layer *layer_win;
+
+  Byte *background_layer_buf;
+  Byte mouse_layer_buf[256];
+  Byte *window_layer_buf;
 
   init_gdtidt();
   init_pic();
@@ -97,24 +105,24 @@ hari_main(void)
   init_keyboard();
   enable_mouse(&mouse_decoder);
 
-  unsigned int memtotal = memtest(0x00400000, 0xbfffffff);
+  unsigned int total_mem_size = memtest(0x00400000, 0xbfffffff);
   memman_init(mem_manager);
   memman_free(mem_manager, 0x00001000, 0x0009e000);
-  memman_free(mem_manager, 0x00400000, memtotal - 0x00400000);
+  memman_free(mem_manager, 0x00400000, total_mem_size - 0x00400000);
 
   init_palette();
   layerctl = layerctl_init(mem_manager, binfo->vram, binfo->scrnx, binfo->scrny);
   layer_back = layer_alloc(layerctl);
   layer_mouse = layer_alloc(layerctl);
   layer_win = layer_alloc(layerctl);
-  buf_back = (Byte *) memman_alloc_4k(mem_manager, binfo->scrnx * binfo->scrny);
-  buf_win = (Byte *) memman_alloc_4k(mem_manager, 160 * 52);
-  layer_setbuf(layer_back, buf_back, binfo->scrnx, binfo->scrny, -1);
-  layer_setbuf(layer_mouse, buf_mouse, 16, 16, 99);
-  layer_setbuf(layer_win, buf_win, 160, 52, -1);
-  init_screen8(buf_back, binfo->scrnx, binfo->scrny);
-  init_mouse_cursor8(buf_mouse, COLOR_TRANSPARENT);
-  make_window8(buf_win, 160, 52, "counter");
+  background_layer_buf = (Byte *) memman_alloc_4k(mem_manager, binfo->scrnx * binfo->scrny);
+  window_layer_buf = (Byte *) memman_alloc_4k(mem_manager, 160 * 52);
+  layer_setbuf(layer_back, background_layer_buf, binfo->scrnx, binfo->scrny, -1);
+  layer_setbuf(layer_mouse, mouse_layer_buf, 16, 16, 99);
+  layer_setbuf(layer_win, window_layer_buf, 160, 52, -1);
+  init_screen8(background_layer_buf, binfo->scrnx, binfo->scrny);
+  init_mouse_cursor8(mouse_layer_buf, COLOR_TRANSPARENT);
+  make_window8(window_layer_buf, 160, 52, "counter");
 
   layer_slide(layer_back, 0, 0);
   int mx = (binfo->scrnx - 16) / 2;
@@ -127,10 +135,10 @@ hari_main(void)
 
   char s0[20];
   sprintf(s0, "(%d, %d)", mx, my);
-  putfonts8_asc(buf_back, binfo->scrnx, 0, 0, COLOR_WHITE, s0);
+  putfonts8_asc(background_layer_buf, binfo->scrnx, 0, 0, COLOR_WHITE, s0);
 
-  sprintf(s0, "memory %dMB   free: %dKB", memtotal / (1024 * 1024), memman_total(mem_manager) / 1024);
-  putfonts8_asc(buf_back, binfo->scrnx, 0, 32, COLOR_WHITE, s0);
+  sprintf(s0, "memory %dMB   free: %dKB", total_mem_size / (1024 * 1024), memman_total(mem_manager) / 1024);
+  putfonts8_asc(background_layer_buf, binfo->scrnx, 0, 32, COLOR_WHITE, s0);
 
   layer_refresh(layer_back, 0, 0, binfo->scrnx, 48);
 
@@ -140,8 +148,8 @@ hari_main(void)
   for (;;) {
     count++;
     sprintf(s0, "%d", count);
-    boxfill8(buf_win, 160, COLOR_LIGHT_GRAY, 40, 28, 119, 43);
-    putfonts8_asc(buf_win, 160, 40, 28, COLOR_WHITE, s0);
+    boxfill8(window_layer_buf, 160, COLOR_LIGHT_GRAY, 40, 28, 119, 43);
+    putfonts8_asc(window_layer_buf, 160, 40, 28, COLOR_WHITE, s0);
     layer_refresh(layer_win, 40, 28, 120, 44);
 
     _io_cli(); // 割り込み禁止
@@ -151,8 +159,8 @@ hari_main(void)
       keycode = fifo_dequeue(&keyfifo);
       _io_sti(); // 割り込み禁止解除
       sprintf(s0, "%x", keycode);
-      boxfill8(buf_back, binfo->scrnx, COLOR_DARK_CYAN, 0, 16, 15, 31);
-      putfonts8_asc(buf_back, binfo->scrnx, 0, 16, COLOR_WHITE, s0);
+      boxfill8(background_layer_buf, binfo->scrnx, COLOR_DARK_CYAN, 0, 16, 15, 31);
+      putfonts8_asc(background_layer_buf, binfo->scrnx, 0, 16, COLOR_WHITE, s0);
       layer_refresh(layer_back, 0, 16, 16, 32);
     } else if (mousefifo.len != 0) {
       keycode = fifo_dequeue(&mousefifo);
@@ -168,8 +176,8 @@ hari_main(void)
         if ((mouse_decoder.btn & 0x04) != 0) {
           s0[2] = 'C';
         }
-        boxfill8(buf_back, binfo->scrnx, COLOR_DARK_CYAN, 32, 16, 32 + 15*8 - 1, 31);
-        putfonts8_asc(buf_back, binfo->scrnx, 32, 16, COLOR_WHITE, s0);
+        boxfill8(background_layer_buf, binfo->scrnx, COLOR_DARK_CYAN, 32, 16, 32 + 15*8 - 1, 31);
+        putfonts8_asc(background_layer_buf, binfo->scrnx, 32, 16, COLOR_WHITE, s0);
         layer_refresh(layer_back, 32, 16, 32 + 15*8, 32);
 
         // move mouse cursor
@@ -188,8 +196,8 @@ hari_main(void)
           my = binfo->scrny - 1;
         }
         sprintf(s, "(%d, %d)", mx, my);
-        boxfill8(buf_back, binfo->scrnx, COLOR_DARK_CYAN, 0, 0, 79, 15); // hide coordinates
-        putfonts8_asc(buf_back, binfo->scrnx, 0, 0, COLOR_WHITE, s); // show coordinates
+        boxfill8(background_layer_buf, binfo->scrnx, COLOR_DARK_CYAN, 0, 0, 79, 15); // hide coordinates
+        putfonts8_asc(background_layer_buf, binfo->scrnx, 0, 0, COLOR_WHITE, s); // show coordinates
         layer_refresh(layer_back, 0, 0, 80, 16);
         layer_slide(layer_mouse, mx, my);
       }
