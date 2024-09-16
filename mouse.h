@@ -14,10 +14,10 @@ typedef struct {
     Byte buf[3];
     MouseDecPhase phase;
     int x, y, btn;
-} MouseDec;
+} MouseDecoder;
 
-void enable_mouse(MouseDec *mdec);
-int mouse_decode(MouseDec *mdec, Byte data);
+void enable_mouse(MouseDecoder *mdec);
+int mouse_decode(MouseDecoder *mdec, Byte data);
 
 
 #endif /* _MOUSE_H_ */

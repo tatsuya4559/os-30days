@@ -76,7 +76,7 @@ hari_main(void)
 {
   BootInfo *binfo = (BootInfo *) ADR_BOOTINFO;
   Byte keybuf[KEY_BUF_SIZE], mousebuf[MOUSE_BUF_SIZE];
-  MouseDec mdec;
+  MouseDecoder mouse_decoder;
   MemoryManager *memman = (MemoryManager *) MEMMAN_ADDR;
   LayerCtl *layerctl;
   Layer *layer_back, *layer_mouse, *layer_win;
@@ -95,7 +95,7 @@ hari_main(void)
   _io_out8(PIC1_IMR, 0xef); // マウスを許可
 
   init_keyboard();
-  enable_mouse(&mdec);
+  enable_mouse(&mouse_decoder);
 
   unsigned int memtotal = memtest(0x00400000, 0xbfffffff);
   memman_init(memman);
@@ -157,15 +157,15 @@ hari_main(void)
     } else if (mousefifo.len != 0) {
       keycode = fifo_dequeue(&mousefifo);
       _io_sti();
-      if (mouse_decode(&mdec, keycode) != 0) {
-        sprintf(s0, "[lcr %d %d]", mdec.x, mdec.y);
-        if ((mdec.btn & 0x01) != 0) {
+      if (mouse_decode(&mouse_decoder, keycode) != 0) {
+        sprintf(s0, "[lcr %d %d]", mouse_decoder.x, mouse_decoder.y);
+        if ((mouse_decoder.btn & 0x01) != 0) {
           s0[1] = 'L';
         }
-        if ((mdec.btn & 0x02) != 0) {
+        if ((mouse_decoder.btn & 0x02) != 0) {
           s0[3] = 'R';
         }
-        if ((mdec.btn & 0x04) != 0) {
+        if ((mouse_decoder.btn & 0x04) != 0) {
           s0[2] = 'C';
         }
         boxfill8(buf_back, binfo->scrnx, COLOR_DARK_CYAN, 32, 16, 32 + 15*8 - 1, 31);
@@ -173,8 +173,8 @@ hari_main(void)
         layer_refresh(layer_back, 32, 16, 32 + 15*8, 32);
 
         // move mouse cursor
-        mx += mdec.x;
-        my += mdec.y;
+        mx += mouse_decoder.x;
+        my += mouse_decoder.y;
         if (mx < 0) {
           mx = 0;
         }
