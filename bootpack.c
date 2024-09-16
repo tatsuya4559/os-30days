@@ -78,7 +78,7 @@ hari_main(void)
   Byte keybuf[KEY_BUF_SIZE], mousebuf[MOUSE_BUF_SIZE];
   MouseDecoder mouse_decoder;
   MemoryManager *mem_manager = (MemoryManager *) MEMMAN_ADDR;
-  LayerCtl *layerctl;
+  LayerController *layerctl;
   Layer *layer_back, *layer_mouse, *layer_win;
   Byte *buf_back, buf_mouse[256], *buf_win;
 

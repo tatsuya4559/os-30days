@@ -1,16 +1,16 @@
 #include "layer.h"
 
-LayerCtl *
+LayerController *
 layerctl_init(MemoryManager *memman, Byte *vram, int xsize, int ysize)
 {
-    LayerCtl *ctl;
-    ctl = (LayerCtl *) memman_alloc_4k(memman, sizeof(LayerCtl));
+    LayerController *ctl;
+    ctl = (LayerController *) memman_alloc_4k(memman, sizeof(LayerController));
     if (ctl == 0) {
         goto err;
     }
     ctl->map = (LayerId *) memman_alloc_4k(memman, xsize * ysize);
     if (ctl->map == 0) {
-        memman_free_4k(memman, (int) ctl, sizeof(LayerCtl));
+        memman_free_4k(memman, (int) ctl, sizeof(LayerController));
         goto err;
     }
     ctl->vram = vram;
@@ -27,7 +27,7 @@ err:
 }
 
 Layer *
-layer_alloc(LayerCtl *ctl)
+layer_alloc(LayerController *ctl)
 {
     Layer *layer;
     for (int i = 0; i < MAX_LAYERS; i++) {
@@ -52,7 +52,7 @@ layer_setbuf(Layer *layer, Byte *buf, int xsize, int ysize, int col_inv)
 
 static
 void
-layer_refreshmap(LayerCtl *ctl, int vx0, int vy0, int vx1, int vy1, int z0)
+layer_refreshmap(LayerController *ctl, int vx0, int vy0, int vx1, int vy1, int z0)
 {
     Layer *layer;
     Byte *buf, c;
@@ -108,7 +108,7 @@ layer_refreshmap(LayerCtl *ctl, int vx0, int vy0, int vx1, int vy1, int z0)
 
 static
 void
-layer_refreshsub(LayerCtl *ctl, int vx0, int vy0, int vx1, int vy1, int z0, int z1)
+layer_refreshsub(LayerController *ctl, int vx0, int vy0, int vx1, int vy1, int z0, int z1)
 {
     Layer *layer;
     Byte *buf, *vram = ctl->vram;
@@ -172,7 +172,7 @@ layer_refresh(Layer *layer, int bx0, int by0, int bx1, int by1)
 void
 layer_updown(Layer *layer, int zindex)
 {
-    LayerCtl *ctl = layer->ctl;
+    LayerController *ctl = layer->ctl;
     int old_zindex = layer->zindex;
 
     // adjust zindex
