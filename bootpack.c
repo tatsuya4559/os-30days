@@ -77,7 +77,7 @@ hari_main(void)
   BootInfo *binfo = (BootInfo *) ADR_BOOTINFO;
   Byte keybuf[KEY_BUF_SIZE], mousebuf[MOUSE_BUF_SIZE];
   MouseDecoder mouse_decoder;
-  MemoryManager *memman = (MemoryManager *) MEMMAN_ADDR;
+  MemoryManager *mem_manager = (MemoryManager *) MEMMAN_ADDR;
   LayerCtl *layerctl;
   Layer *layer_back, *layer_mouse, *layer_win;
   Byte *buf_back, buf_mouse[256], *buf_win;
@@ -98,17 +98,17 @@ hari_main(void)
   enable_mouse(&mouse_decoder);
 
   unsigned int memtotal = memtest(0x00400000, 0xbfffffff);
-  memman_init(memman);
-  memman_free(memman, 0x00001000, 0x0009e000);
-  memman_free(memman, 0x00400000, memtotal - 0x00400000);
+  memman_init(mem_manager);
+  memman_free(mem_manager, 0x00001000, 0x0009e000);
+  memman_free(mem_manager, 0x00400000, memtotal - 0x00400000);
 
   init_palette();
-  layerctl = layerctl_init(memman, binfo->vram, binfo->scrnx, binfo->scrny);
+  layerctl = layerctl_init(mem_manager, binfo->vram, binfo->scrnx, binfo->scrny);
   layer_back = layer_alloc(layerctl);
   layer_mouse = layer_alloc(layerctl);
   layer_win = layer_alloc(layerctl);
-  buf_back = (Byte *) memman_alloc_4k(memman, binfo->scrnx * binfo->scrny);
-  buf_win = (Byte *) memman_alloc_4k(memman, 160 * 52);
+  buf_back = (Byte *) memman_alloc_4k(mem_manager, binfo->scrnx * binfo->scrny);
+  buf_win = (Byte *) memman_alloc_4k(mem_manager, 160 * 52);
   layer_setbuf(layer_back, buf_back, binfo->scrnx, binfo->scrny, -1);
   layer_setbuf(layer_mouse, buf_mouse, 16, 16, 99);
   layer_setbuf(layer_win, buf_win, 160, 52, -1);
@@ -129,7 +129,7 @@ hari_main(void)
   sprintf(s0, "(%d, %d)", mx, my);
   putfonts8_asc(buf_back, binfo->scrnx, 0, 0, COLOR_WHITE, s0);
 
-  sprintf(s0, "memory %dMB   free: %dKB", memtotal / (1024 * 1024), memman_total(memman) / 1024);
+  sprintf(s0, "memory %dMB   free: %dKB", memtotal / (1024 * 1024), memman_total(mem_manager) / 1024);
   putfonts8_asc(buf_back, binfo->scrnx, 0, 32, COLOR_WHITE, s0);
 
   layer_refresh(layer_back, 0, 0, binfo->scrnx, 48);
