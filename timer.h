@@ -1,7 +1,12 @@
-#ifndef _TIMER_H_
-#define _TIMER_H_
+#pragma once
 
+/**
+ * Initialize PIT.
+ * PIT stands for Programmable Interval Timer.
+ */
 void init_pit(void);
-void inthandler20(int *esp);
 
-#endif /* _TIMER_H_ */
+/**
+ * Interrupt handler for IRQ0.
+ */
+void inthandler20(int *esp);
