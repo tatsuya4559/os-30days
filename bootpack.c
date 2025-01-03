@@ -99,7 +99,7 @@ hari_main(void)
 
   init_pit();
 
-  _io_out8(PIC0_IMR, 0xf9); // PIC1とキーボードを許可
+  _io_out8(PIC0_IMR, 0xf8); // PITとPIC1とキーボードを許可(11111000)
   _io_out8(PIC1_IMR, 0xef); // マウスを許可
 
   init_keyboard();
