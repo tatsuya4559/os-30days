@@ -161,3 +161,11 @@ init_screen8(uint8_t *vram, int32_t x, int32_t y)
   boxfill8(vram, x, COLOR_WHITE, x - 47, y - 3, x - 4, y - 3);
   boxfill8(vram, x, COLOR_WHITE, x - 3, y - 24, x - 3, y - 3);
 }
+
+void
+print_on_layer(Layer *layer, int32_t x, int32_t y, uint8_t bg_color, uint8_t fg_color, char *s, int32_t s_len)
+{
+  boxfill8(layer->buf, layer->bxsize, bg_color, x, y, x + s_len * 8 - 1, y + FONT_HEIGHT - 1);
+  putfonts8_asc(layer->buf, layer->bxsize, x, y, fg_color, s);
+  layer_refresh(layer, x, y, x + s_len * 8, y + FONT_HEIGHT);
+}

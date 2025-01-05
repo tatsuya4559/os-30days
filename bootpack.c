@@ -164,17 +164,13 @@ hari_main(void)
   for (;;) {
     // Print time spent since boot
     sprintf(s0, "%d", timerctl.count);
-    boxfill8(window_layer_buf, 160, COLOR_LIGHT_GRAY, 40, 28, 119, 43);
-    putfonts8_asc(window_layer_buf, 160, 40, 28, COLOR_WHITE, s0);
-    layer_refresh(layer_win, 40, 28, 120, 44);
+    print_on_layer(layer_win, 40, 28, COLOR_LIGHT_GRAY, COLOR_WHITE, s0, 10);
 
     _io_cli(); // 割り込み禁止
     if (keyfifo.len != 0) {
       keycode = fifo_dequeue(&keyfifo);
       sprintf(s0, "%x", keycode);
-      boxfill8(background_layer_buf, binfo->scrnx, COLOR_DARK_CYAN, 0, 16, 15, 31);
-      putfonts8_asc(background_layer_buf, binfo->scrnx, 0, 16, COLOR_WHITE, s0);
-      layer_refresh(layer_back, 0, 16, 16, 32);
+      print_on_layer(layer_back, 0, 16, COLOR_DARK_CYAN, COLOR_WHITE, s0, 2);
     } else if (mousefifo.len != 0) {
       keycode = fifo_dequeue(&mousefifo);
       if (mouse_decode(&mouse_decoder, keycode) != 0) {
@@ -188,9 +184,7 @@ hari_main(void)
         if ((mouse_decoder.btn & 0x04) != 0) {
           s0[2] = 'C';
         }
-        boxfill8(background_layer_buf, binfo->scrnx, COLOR_DARK_CYAN, 32, 16, 32 + 15*8 - 1, 31);
-        putfonts8_asc(background_layer_buf, binfo->scrnx, 32, 16, COLOR_WHITE, s0);
-        layer_refresh(layer_back, 32, 16, 32 + 15*8, 32);
+        print_on_layer(layer_back, 32, 16, COLOR_DARK_CYAN, COLOR_WHITE, s0, 15);
 
         // move mouse cursor
         mx += mouse_decoder.x;
@@ -208,19 +202,15 @@ hari_main(void)
           my = binfo->scrny - 1;
         }
         sprintf(s, "(%d, %d)", mx, my);
-        boxfill8(background_layer_buf, binfo->scrnx, COLOR_DARK_CYAN, 0, 0, 79, 15); // hide coordinates
-        putfonts8_asc(background_layer_buf, binfo->scrnx, 0, 0, COLOR_WHITE, s); // show coordinates
-        layer_refresh(layer_back, 0, 0, 80, 16);
+        print_on_layer(layer_back, 0, 0, COLOR_DARK_CYAN, COLOR_WHITE, s, 10);
         layer_slide(layer_mouse, mx, my);
       }
     } else if (timerbus.len != 0) {
       fifo_dequeue(&timerbus); // consume the bus
-      putfonts8_asc(background_layer_buf, binfo->scrnx, 0, 64, COLOR_WHITE, "10[sec]");
-      layer_refresh(layer_back, 0, 64, 56, 80);
+      print_on_layer(layer_back, 0, 64, COLOR_DARK_CYAN, COLOR_WHITE, "10[sec]", 7);
     } else if (timerbus2.len != 0) {
       fifo_dequeue(&timerbus2); // consume the bus
-      putfonts8_asc(background_layer_buf, binfo->scrnx, 0, 80, COLOR_WHITE, "3[sec]");
-      layer_refresh(layer_back, 0, 80, 48, 96);
+      print_on_layer(layer_back, 0, 80, COLOR_DARK_CYAN, COLOR_WHITE, "3[sec]", 6);
     } else if (timerbus3.len != 0) {
       uint8_t i = fifo_dequeue(&timerbus3); // consume the bus
       putfonts8_asc(background_layer_buf, binfo->scrnx, 0, 96, COLOR_WHITE, "0.5[sec]");
