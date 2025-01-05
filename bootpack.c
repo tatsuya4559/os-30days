@@ -1,3 +1,4 @@
+#include "fifo.h"
 #include "nasmfunc.h"
 #include "common.h"
 #include "iolib.h"
@@ -69,6 +70,7 @@ make_window8(uint8_t *buf, int32_t xsize, int32_t ysize, char *title)
 
 #define KEY_BUF_SIZE 32
 #define MOUSE_BUF_SIZE 128
+#define TIMER_BUF_SIZE 8
 
 
 void
@@ -79,8 +81,10 @@ hari_main(void)
   MemoryManager *mem_manager = (MemoryManager *) MEMMAN_ADDR;
   LayerController *layerctl;
 
+  FIFO timerbus;
   uint8_t keybuf[KEY_BUF_SIZE];
   uint8_t mousebuf[MOUSE_BUF_SIZE];
+  uint8_t timerbuf[TIMER_BUF_SIZE];
 
   Layer *layer_back;
   Layer *layer_mouse;
@@ -96,8 +100,11 @@ hari_main(void)
 
   fifo_init(&keyfifo, KEY_BUF_SIZE, keybuf);
   fifo_init(&mousefifo, MOUSE_BUF_SIZE, mousebuf);
+  fifo_init(&timerbus, TIMER_BUF_SIZE, timerbuf);
 
   init_pit();
+
+  set_timer(1000, &timerbus, 1);
 
   _io_out8(PIC0_IMR, 0xf8); // PITとPIC1とキーボードを許可(11111000)
   _io_out8(PIC1_IMR, 0xef); // マウスを許可
@@ -152,18 +159,14 @@ hari_main(void)
     layer_refresh(layer_win, 40, 28, 120, 44);
 
     _io_cli(); // 割り込み禁止
-    if (keyfifo.len == 0 && mousefifo.len == 0) {
-      _io_sti();
-    } else if (keyfifo.len != 0) {
+    if (keyfifo.len != 0) {
       keycode = fifo_dequeue(&keyfifo);
-      _io_sti(); // 割り込み禁止解除
       sprintf(s0, "%x", keycode);
       boxfill8(background_layer_buf, binfo->scrnx, COLOR_DARK_CYAN, 0, 16, 15, 31);
       putfonts8_asc(background_layer_buf, binfo->scrnx, 0, 16, COLOR_WHITE, s0);
       layer_refresh(layer_back, 0, 16, 16, 32);
     } else if (mousefifo.len != 0) {
       keycode = fifo_dequeue(&mousefifo);
-      _io_sti();
       if (mouse_decode(&mouse_decoder, keycode) != 0) {
         sprintf(s0, "[lcr %d %d]", mouse_decoder.x, mouse_decoder.y);
         if ((mouse_decoder.btn & 0x01) != 0) {
@@ -200,6 +203,11 @@ hari_main(void)
         layer_refresh(layer_back, 0, 0, 80, 16);
         layer_slide(layer_mouse, mx, my);
       }
+    } else if (timerbus.len != 0) {
+      fifo_dequeue(&timerbus); // consume the bus
+      putfonts8_asc(background_layer_buf, binfo->scrnx, 0, 64, COLOR_WHITE, "10[sec]");
+      layer_refresh(layer_back, 0, 64, 56, 80);
     }
+    _io_sti(); // 割り込み禁止解除
   }
 }

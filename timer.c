@@ -20,7 +20,10 @@ init_pit(void)
   // 100Hz means the interrupt is called every 10 milliseconds.
   _io_out8(PIT_CNT0, 0x9c);
   _io_out8(PIT_CNT0, 0x2e);
+
+  // Initialize timerctl
   timerctl.count = 0;
+  timerctl.timeout = 0;
 }
 
 void
@@ -28,5 +31,27 @@ inthandler20(int32_t *esp)
 {
   // Notify PIC(Programmable Interrupt Controller) that IRQ-00 has been accepted.
   _io_out8(PIC0_OCW2, 0x60);
+
   timerctl.count++;
+  if (timerctl.timeout > 0) {
+    timerctl.timeout--;
+    if (timerctl.timeout == 0) {
+      fifo_enqueue(timerctl.bus, timerctl.data);
+    }
+  }
+}
+
+void
+set_timer(uint32_t timeout, FIFO *bus, uint8_t data)
+{
+  // Disable interrupts because the timer configuration must be atomic.
+  int eflags = _io_load_eflags();
+  _io_cli();
+
+  timerctl.timeout = timeout;
+  timerctl.bus = bus;
+  timerctl.data = data;
+
+  // Restore interrupts.
+  _io_store_eflags(eflags);
 }
