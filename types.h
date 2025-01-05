@@ -2,6 +2,8 @@
 
 #define NULL ((void*)0)
 
+#define UINT32_MAX 0xffffffff
+
 typedef unsigned char uint8_t;
 typedef unsigned short uint16_t;
 typedef unsigned int uint32_t;

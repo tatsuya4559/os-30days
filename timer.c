@@ -23,6 +23,7 @@ init_pit(void)
 
   // Initialize timerctl
   timerctl.count = 0;
+  timerctl.next_fired_at = UINT32_MAX;
   for (int32_t i = 0; i < MAX_TIMERS; i++) {
     timerctl.timers[i].state = TIMER_UNUSED;
   }
@@ -58,6 +59,9 @@ timer_set_timeout(Timer *timer, uint32_t timeout)
 {
   timer->fired_at = timeout + timerctl.count;
   timer->state = TIMER_RUNNING;
+  if (timerctl.next_fired_at > timer->fired_at) {
+    timerctl.next_fired_at = timer->fired_at;
+  }
 }
 
 void
@@ -67,11 +71,20 @@ inthandler20(int32_t *esp)
   _io_out8(PIC0_OCW2, 0x60);
 
   timerctl.count++;
+
+  // Monitor the very next timer to be fired.
+  if (timerctl.next_fired_at > timerctl.count) {
+    return;
+  }
+
+  timerctl.next_fired_at = UINT32_MAX;
   for (int32_t i = 0; i < MAX_TIMERS; i++) {
     if (timerctl.timers[i].state == TIMER_RUNNING) {
       if (timerctl.timers[i].fired_at <= timerctl.count) {
         timerctl.timers[i].state = TIMER_ALLOCATED;
         fifo_enqueue(timerctl.timers[i].bus, timerctl.timers[i].data);
+      } else if (timerctl.next_fired_at > timerctl.timers[i].fired_at) {
+        timerctl.next_fired_at = timerctl.timers[i].fired_at;
       }
     }
   }

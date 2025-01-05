@@ -26,6 +26,7 @@ typedef struct {
    * The number of interrupts that have occurred since the system started.
    */
   uint32_t count;
+  uint32_t next_fired_at;
   Timer timers[MAX_TIMERS];
 } TimerCtl;
 
