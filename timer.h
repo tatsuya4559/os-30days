@@ -14,10 +14,9 @@ typedef enum {
 typedef struct {
   TimerState state;
   /**
-   * The remaining time until timeout.
-   * When this value reaches 0, the data is pushed into the bus.
+   * When count reaches this value, the data is pushed into the bus.
    */
-  uint32_t timeout;
+  uint32_t fired_at;
   FIFO *bus;
   uint8_t data;
 } Timer;

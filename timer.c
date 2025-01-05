@@ -56,7 +56,7 @@ timer_init(Timer *timer, FIFO *bus, uint8_t data)
 void
 timer_set_timeout(Timer *timer, uint32_t timeout)
 {
-  timer->timeout = timeout;
+  timer->fired_at = timeout + timerctl.count;
   timer->state = TIMER_RUNNING;
 }
 
@@ -69,8 +69,7 @@ inthandler20(int32_t *esp)
   timerctl.count++;
   for (int32_t i = 0; i < MAX_TIMERS; i++) {
     if (timerctl.timers[i].state == TIMER_RUNNING) {
-      timerctl.timers[i].timeout--;
-      if (timerctl.timers[i].timeout == 0) {
+      if (timerctl.timers[i].fired_at <= timerctl.count) {
         timerctl.timers[i].state = TIMER_ALLOCATED;
         fifo_enqueue(timerctl.timers[i].bus, timerctl.timers[i].data);
       }
