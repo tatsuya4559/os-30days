@@ -21,7 +21,8 @@ init_pit(void)
 }
 
 void
-inthandler20(int *esp)
+inthandler20(int32_t *esp)
 {
+  // Notify PIC(Programmable Interrupt Controller) that IRQ-00 has been accepted.
   _io_out8(PIC0_OCW2, 0x60);
 }

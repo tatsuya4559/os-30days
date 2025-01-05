@@ -1,21 +1,18 @@
-#ifndef _FIFO_H_
-#define _FIFO_H_
+#pragma once
 
 #include "common.h"
 
 #define FIFO_OVERRUN 0x0001
 
 typedef struct {
-  Byte *buf;
-  int reading_next;
-  int writing_next;
-  int cap;
-  int len;
-  int flags;
+  uint8_t *buf;
+  int32_t reading_next;
+  int32_t writing_next;
+  int32_t cap;
+  int32_t len;
+  int32_t flags;
 } FIFO;
 
-void fifo_init(FIFO *fifo, int cap, Byte *buf);
-int fifo_enqueue(FIFO *fifo, Byte b);
-Byte fifo_dequeue(FIFO *fifo);
-
-#endif /* _FIFO_H_ */
+void fifo_init(FIFO *fifo, int32_t cap, uint8_t *buf);
+int32_t fifo_enqueue(FIFO *fifo, uint8_t b);
+uint8_t fifo_dequeue(FIFO *fifo);

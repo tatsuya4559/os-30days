@@ -6,13 +6,13 @@
 #define CR0_CACHE_DISABLE 0x60000000
 
 static
-unsigned int
-memtest_sub(unsigned int start, unsigned int end)
+uint32_t
+memtest_sub(uint32_t start, uint32_t end)
 {
   // optimizaion may break this function
-  unsigned int i, *p, old, pat0 = 0xaa55aa55, pat1 = 0x55aa55aa;
+  uint32_t i, *p, old, pat0 = 0xaa55aa55, pat1 = 0x55aa55aa;
   for (i = start; i <= end; i += 0x1000) {
-    p = (unsigned int *) (i + 0xffc); // check last 4 bytes
+    p = (uint32_t *) (i + 0xffc); // check last 4 bytes
     old = *p;
     *p = pat0; // try writing
     *p ^= 0xffffffff; // invert
@@ -31,11 +31,11 @@ not_memory:
 }
 
 /* test how much memory can be used */
-unsigned int
-memtest(unsigned int start, unsigned int end)
+uint32_t
+memtest(uint32_t start, uint32_t end)
 {
   bool is486 = false;
-  unsigned int eflg, cr0, i;
+  uint32_t eflg, cr0, i;
 
   // check if CPU is 386 or 486
   eflg = _io_load_eflags();
@@ -74,20 +74,20 @@ memman_init(MemoryManager *man)
   man->losts = 0;
 }
 
-unsigned int
+uint32_t
 memman_total(MemoryManager *man)
 {
-  unsigned int i, t = 0;
+  uint32_t i, t = 0;
   for (i = 0; i < man->frees; i++) {
     t += man->free[i].size;
   }
   return t;
 }
 
-unsigned int
-memman_alloc(MemoryManager *man, unsigned int size)
+uint32_t
+memman_alloc(MemoryManager *man, uint32_t size)
 {
-  unsigned int i, a;
+  uint32_t i, a;
   for (i = 0; i < man->frees; i++) {
     if (man->free[i].size >= size) {
       a = man->free[i].addr;
@@ -107,9 +107,9 @@ memman_alloc(MemoryManager *man, unsigned int size)
 }
 
 int
-memman_free(MemoryManager *man, unsigned int addr, unsigned int size)
+memman_free(MemoryManager *man, uint32_t addr, uint32_t size)
 {
-  int i, j;
+  int32_t i, j;
   // find the hole to insert
   for (i = 0; i < man->frees; i++) {
     if (man->free[i].addr > addr) {
@@ -161,15 +161,15 @@ memman_free(MemoryManager *man, unsigned int addr, unsigned int size)
   return -1; // fail
 }
 
-unsigned int
-memman_alloc_4k(MemoryManager *memman, unsigned int size)
+uint32_t
+memman_alloc_4k(MemoryManager *memman, uint32_t size)
 {
   size = (size + 0xfff) & 0xfffff000; // 0x1000 - 1 を足してから下位3オクテットを切り捨てると切り上げになる
   return memman_alloc(memman, size);
 }
 
 int
-memman_free_4k(MemoryManager *memman, unsigned int addr, unsigned int size)
+memman_free_4k(MemoryManager *memman, uint32_t addr, uint32_t size)
 {
   size = (size + 0xfff) & 0xfffff000;
   return memman_free(memman, addr, size);

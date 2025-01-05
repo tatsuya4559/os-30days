@@ -1,11 +1,12 @@
 #include "iolib.h"
+#include "types.h"
 
 static
 int
-dec2asc(char *str, int dec)
+dec2asc(char *str, int32_t dec)
 {
-  int len = 0, len_buf; //桁数
-  int buf[10];
+  int32_t len = 0, len_buf; //桁数
+  int32_t buf[10];
   while (1) { //10で割れた回数（つまり桁数）をlenに、各桁をbufに格納
     buf[len++] = dec % 10;
     if (dec < 10) break;
@@ -21,10 +22,10 @@ dec2asc(char *str, int dec)
 //16進数からASCIIコードに変換
 static
 int
-hex2asc(char *str, int dec)
+hex2asc(char *str, int32_t dec)
 { //10で割れた回数（つまり桁数）をlenに、各桁をbufに格納
-  int len = 0, len_buf; //桁数
-  int buf[10];
+  int32_t len = 0, len_buf; //桁数
+  int32_t buf[10];
   while (1) {
     buf[len++] = dec % 16;
     if (dec < 16) break;
@@ -42,7 +43,7 @@ void
 sprintf(char *str, char *fmt, ...)
 {
   va_list list;
-  int i, len;
+  int32_t i, len;
   va_start(list, 2);
 
   while (*fmt) {

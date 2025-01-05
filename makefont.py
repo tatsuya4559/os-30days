@@ -42,7 +42,7 @@ def main():
     results = compiler.compile()
 
     with open('font.h', 'w') as fp:
-        fp.write('unsigned char fonts[256][16] = {\n')
+        fp.write('uint8_t fonts[256][16] = {\n')
         fp.writelines(results)
         fp.write('};')
 

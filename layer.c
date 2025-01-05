@@ -1,7 +1,7 @@
 #include "layer.h"
 
 LayerController *
-layerctl_init(MemoryManager *memman, Byte *vram, int xsize, int ysize)
+layerctl_init(MemoryManager *memman, uint8_t *vram, int32_t xsize, int32_t ysize)
 {
   LayerController *ctl;
   ctl = (LayerController *) memman_alloc_4k(memman, sizeof(LayerController));
@@ -17,7 +17,7 @@ layerctl_init(MemoryManager *memman, Byte *vram, int xsize, int ysize)
   ctl->xsize = xsize;
   ctl->ysize = ysize;
   ctl->top_zindex = -1; // no layer
-  for (int i = 0; i < MAX_LAYERS; i++) {
+  for (int32_t i = 0; i < MAX_LAYERS; i++) {
     ctl->layers0[i].flags = LAYER_UNUSED;
     ctl->layers0[i].ctl = ctl;
   }
@@ -30,7 +30,7 @@ Layer *
 layer_alloc(LayerController *ctl)
 {
   Layer *layer;
-  for (int i = 0; i < MAX_LAYERS; i++) {
+  for (int32_t i = 0; i < MAX_LAYERS; i++) {
     if (ctl->layers0[i].flags == LAYER_UNUSED) {
       layer = &ctl->layers0[i];
       layer->flags = LAYER_USED;
@@ -42,7 +42,7 @@ layer_alloc(LayerController *ctl)
 }
 
 void
-layer_setbuf(Layer *layer, Byte *buf, int xsize, int ysize, int col_inv)
+layer_setbuf(Layer *layer, uint8_t *buf, int32_t xsize, int32_t ysize, int32_t col_inv)
 {
   layer->buf = buf;
   layer->bxsize = xsize;
@@ -52,12 +52,12 @@ layer_setbuf(Layer *layer, Byte *buf, int xsize, int ysize, int col_inv)
 
 static
 void
-layer_refreshmap(LayerController *ctl, int vx0, int vy0, int vx1, int vy1, int z0)
+layer_refreshmap(LayerController *ctl, int32_t vx0, int32_t vy0, int32_t vx1, int32_t vy1, int32_t z0)
 {
   Layer *layer;
-  Byte *buf, c;
+  uint8_t *buf, c;
   LayerId *map = ctl->map;
-  int bx0, by0, bx1, by1, vx, vy;
+  int32_t bx0, by0, bx1, by1, vx, vy;
 
   if (vx0 < 0) {
     vx0 = 0;
@@ -73,7 +73,7 @@ layer_refreshmap(LayerController *ctl, int vx0, int vy0, int vx1, int vy1, int z
   }
 
   LayerId layer_id;
-  for (int z = z0; z <= ctl->top_zindex; z++) {
+  for (int32_t z = z0; z <= ctl->top_zindex; z++) {
     layer = ctl->layers[z];
     layer_id = (LayerId) (layer - ctl->layers0);
     buf = layer->buf;
@@ -93,9 +93,9 @@ layer_refreshmap(LayerController *ctl, int vx0, int vy0, int vx1, int vy1, int z
     if (by1 > layer->bysize) {
       by1 = layer->bysize;
     }
-    for (int by = by0; by < by1; by++) {
+    for (int32_t by = by0; by < by1; by++) {
       vy = layer->vy0 + by;
-      for (int bx = bx0; bx < bx1; bx++) {
+      for (int32_t bx = bx0; bx < bx1; bx++) {
         vx = layer->vx0 + bx;
         c = buf[by * layer->bxsize + bx];
         if (c != layer->col_inv) {
@@ -108,12 +108,12 @@ layer_refreshmap(LayerController *ctl, int vx0, int vy0, int vx1, int vy1, int z
 
 static
 void
-layer_refreshsub(LayerController *ctl, int vx0, int vy0, int vx1, int vy1, int z0, int z1)
+layer_refreshsub(LayerController *ctl, int32_t vx0, int32_t vy0, int32_t vx1, int32_t vy1, int32_t z0, int32_t z1)
 {
   Layer *layer;
-  Byte *buf, *vram = ctl->vram;
+  uint8_t *buf, *vram = ctl->vram;
   LayerId *map = ctl->map;
-  int bx0, by0, bx1, by1;
+  int32_t bx0, by0, bx1, by1;
   LayerId layer_id;
 
   if (vx0 < 0) {
@@ -129,7 +129,7 @@ layer_refreshsub(LayerController *ctl, int vx0, int vy0, int vx1, int vy1, int z
     vy1 = ctl->ysize;
   }
 
-  for (int z = z0; z <= z1; z++) {
+  for (int32_t z = z0; z <= z1; z++) {
     layer = ctl->layers[z];
     buf = layer->buf;
     bx0 = vx0 - layer->vx0;
@@ -149,10 +149,10 @@ layer_refreshsub(LayerController *ctl, int vx0, int vy0, int vx1, int vy1, int z
       by1 = layer->bysize;
     }
     layer_id = (LayerId) (layer - ctl->layers0);
-    for (int by = by0; by < by1; by++) {
-      int vy = layer->vy0 + by;
-      for (int bx = bx0; bx < bx1; bx++) {
-        int vx = layer->vx0 + bx;
+    for (int32_t by = by0; by < by1; by++) {
+      int32_t vy = layer->vy0 + by;
+      for (int32_t bx = bx0; bx < bx1; bx++) {
+        int32_t vx = layer->vx0 + bx;
         if (map[vy * ctl->xsize + vx] == layer_id) {
           vram[vy * ctl->xsize + vx] = buf[by * layer->bxsize + bx];
         }
@@ -162,7 +162,7 @@ layer_refreshsub(LayerController *ctl, int vx0, int vy0, int vx1, int vy1, int z
 }
 
 void
-layer_refresh(Layer *layer, int bx0, int by0, int bx1, int by1)
+layer_refresh(Layer *layer, int32_t bx0, int32_t by0, int32_t bx1, int32_t by1)
 {
   if (layer->zindex >= 0) {
     layer_refreshsub(layer->ctl, layer->vx0 + bx0, layer->vy0 + by0, layer->vx0 + bx1, layer->vy0 + by1, layer->zindex, layer->zindex);
@@ -170,10 +170,10 @@ layer_refresh(Layer *layer, int bx0, int by0, int bx1, int by1)
 }
 
 void
-layer_updown(Layer *layer, int zindex)
+layer_updown(Layer *layer, int32_t zindex)
 {
   LayerController *ctl = layer->ctl;
-  int old_zindex = layer->zindex;
+  int32_t old_zindex = layer->zindex;
 
   // adjust zindex
   if (zindex > ctl->top_zindex + 1) {
@@ -187,7 +187,7 @@ layer_updown(Layer *layer, int zindex)
   // sort layers
   if (old_zindex > zindex) {
     if (zindex >= 0) {
-      for (int i = old_zindex; i > zindex; i--) {
+      for (int32_t i = old_zindex; i > zindex; i--) {
         ctl->layers[i] = ctl->layers[i - 1];
         ctl->layers[i]->zindex = i;
       }
@@ -196,7 +196,7 @@ layer_updown(Layer *layer, int zindex)
       layer_refreshsub(ctl, layer->vx0, layer->vy0, layer->vx0 + layer->bxsize, layer->vy0 + layer->bysize, zindex + 1, old_zindex);
     } else {
       if (ctl->top_zindex > old_zindex) {
-        for (int i = old_zindex; i < ctl->top_zindex; i++) {
+        for (int32_t i = old_zindex; i < ctl->top_zindex; i++) {
           ctl->layers[i] = ctl->layers[i + 1];
           ctl->layers[i]->zindex = i;
         }
@@ -207,13 +207,13 @@ layer_updown(Layer *layer, int zindex)
     }
   } else if (old_zindex < zindex) {
     if (old_zindex >= 0) {
-      for (int z = old_zindex; z < zindex; z++) {
+      for (int32_t z = old_zindex; z < zindex; z++) {
         ctl->layers[z] = ctl->layers[z + 1];
         ctl->layers[z]->zindex = z;
       }
       ctl->layers[zindex] = layer;
     } else {
-      for (int z = ctl->top_zindex; z >= zindex; z--) {
+      for (int32_t z = ctl->top_zindex; z >= zindex; z--) {
         ctl->layers[z + 1] = ctl->layers[z];
         ctl->layers[z + 1]->zindex = z + 1;
       }
@@ -226,10 +226,10 @@ layer_updown(Layer *layer, int zindex)
 }
 
 void
-layer_slide(Layer *layer, int vx0, int vy0)
+layer_slide(Layer *layer, int32_t vx0, int32_t vy0)
 {
-  int old_vx0 = layer->vx0;
-  int old_vy0 = layer->vy0;
+  int32_t old_vx0 = layer->vx0;
+  int32_t old_vy0 = layer->vy0;
   layer->vx0 = vx0;
   layer->vy0 = vy0;
   if (layer->zindex >= 0) {

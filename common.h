@@ -1,12 +1,11 @@
-#ifndef _COMMON_H_
-#define _COMMON_H_
+#pragma once
 
-typedef unsigned char Byte;
+#include "types.h"
 
 typedef struct {
-  Byte cyls, leds, vmode, reserve;
+  uint8_t cyls, leds, vmode, reserve;
   short scrnx, scrny;
-  Byte *vram;
+  uint8_t *vram;
 } BootInfo;
 
 #define ADR_BOOTINFO 0x00000ff0
@@ -19,5 +18,3 @@ typedef struct {
 #define  KEYCMD_SENDTO_MOUSE   0xd4
 #define  MOUSECMD_ENABLE       0xf4
 #define  KBC_MODE              0x47
-
-#endif /* _COMMON_H_ */

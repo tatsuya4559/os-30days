@@ -1,5 +1,4 @@
-#ifndef _MOUSE_H_
-#define _MOUSE_H_
+#pragma once
 
 #include "common.h"
 
@@ -11,13 +10,10 @@ typedef enum {
 } MouseDecPhase;
 
 typedef struct {
-  Byte buf[3];
+  uint8_t buf[3];
   MouseDecPhase phase;
-  int x, y, btn;
+  int32_t x, y, btn;
 } MouseDecoder;
 
 void enable_mouse(MouseDecoder *mdec);
-int mouse_decode(MouseDecoder *mdec, Byte data);
-
-
-#endif /* _MOUSE_H_ */
+int32_t mouse_decode(MouseDecoder *mdec, uint8_t data);

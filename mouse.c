@@ -13,7 +13,7 @@ enable_mouse(MouseDecoder *mdec)
 }
 
 int
-mouse_decode(MouseDecoder *mdec, Byte data)
+mouse_decode(MouseDecoder *mdec, uint8_t data)
 {
   switch (mdec->phase) {
     case MOUSE_DEC_PHASE_WAITING_0XFA:

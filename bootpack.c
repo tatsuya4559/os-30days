@@ -16,7 +16,7 @@
 #define CLOSE_BUTTON_WIDTH 16
 
 void
-make_window8(Byte *buf, int xsize, int ysize, char *title)
+make_window8(uint8_t *buf, int32_t xsize, int32_t ysize, char *title)
 {
   static char closebtn[CLOSE_BUTTON_HEIGHT][CLOSE_BUTTON_WIDTH] = {
     "OOOOOOOOOOOOOOO@",
@@ -45,8 +45,8 @@ make_window8(Byte *buf, int xsize, int ysize, char *title)
   boxfill8(buf,  xsize,  COLOR_DARK_GRAY,   0,        ysize-1,  xsize-1,  ysize-1);
   boxfill8(buf,  xsize,  COLOR_DARK_GRAY,   1,        ysize-2,  xsize-2,  ysize-2);
   putfonts8_asc(buf, xsize, 24, 4, COLOR_WHITE, title);
-  for (int y = 0; y < CLOSE_BUTTON_HEIGHT; y++) {
-    for (int x = 0; x < CLOSE_BUTTON_WIDTH; x++) {
+  for (int32_t y = 0; y < CLOSE_BUTTON_HEIGHT; y++) {
+    for (int32_t x = 0; x < CLOSE_BUTTON_WIDTH; x++) {
       char c = closebtn[y][x];
       switch (c) {
         case '@':
@@ -79,16 +79,16 @@ hari_main(void)
   MemoryManager *mem_manager = (MemoryManager *) MEMMAN_ADDR;
   LayerController *layerctl;
 
-  Byte keybuf[KEY_BUF_SIZE];
-  Byte mousebuf[MOUSE_BUF_SIZE];
+  uint8_t keybuf[KEY_BUF_SIZE];
+  uint8_t mousebuf[MOUSE_BUF_SIZE];
 
   Layer *layer_back;
   Layer *layer_mouse;
   Layer *layer_win;
 
-  Byte *background_layer_buf;
-  Byte mouse_layer_buf[256];
-  Byte *window_layer_buf;
+  uint8_t *background_layer_buf;
+  uint8_t mouse_layer_buf[256];
+  uint8_t *window_layer_buf;
 
   init_gdtidt();
   init_pic();
@@ -105,7 +105,7 @@ hari_main(void)
   init_keyboard();
   enable_mouse(&mouse_decoder);
 
-  unsigned int total_mem_size = memtest(0x00400000, 0xbfffffff);
+  uint32_t total_mem_size = memtest(0x00400000, 0xbfffffff);
   memman_init(mem_manager);
   memman_free(mem_manager, 0x00001000, 0x0009e000);
   memman_free(mem_manager, 0x00400000, total_mem_size - 0x00400000);
@@ -115,8 +115,8 @@ hari_main(void)
   layer_back = layer_alloc(layerctl);
   layer_mouse = layer_alloc(layerctl);
   layer_win = layer_alloc(layerctl);
-  background_layer_buf = (Byte *) memman_alloc_4k(mem_manager, binfo->scrnx * binfo->scrny);
-  window_layer_buf = (Byte *) memman_alloc_4k(mem_manager, 160 * 52);
+  background_layer_buf = (uint8_t *) memman_alloc_4k(mem_manager, binfo->scrnx * binfo->scrny);
+  window_layer_buf = (uint8_t *) memman_alloc_4k(mem_manager, 160 * 52);
   layer_setbuf(layer_back, background_layer_buf, binfo->scrnx, binfo->scrny, -1);
   layer_setbuf(layer_mouse, mouse_layer_buf, 16, 16, 99);
   layer_setbuf(layer_win, window_layer_buf, 160, 52, -1);
@@ -125,8 +125,8 @@ hari_main(void)
   make_window8(window_layer_buf, 160, 52, "counter");
 
   layer_slide(layer_back, 0, 0);
-  int mx = (binfo->scrnx - 16) / 2;
-  int my = (binfo->scrny - 28 - 16) / 2;
+  int32_t mx = (binfo->scrnx - 16) / 2;
+  int32_t my = (binfo->scrny - 28 - 16) / 2;
   layer_slide(layer_mouse, mx, my);
   layer_slide(layer_win, 80, 72);
   layer_updown(layer_back, 0);
@@ -142,9 +142,9 @@ hari_main(void)
 
   layer_refresh(layer_back, 0, 0, binfo->scrnx, 48);
 
-  Byte keycode;
+  uint8_t keycode;
   char s[4];
-  int count = 0;
+  int32_t count = 0;
   for (;;) {
     count++;
     sprintf(s0, "%d", count);

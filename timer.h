@@ -9,4 +9,4 @@ void init_pit(void);
 /**
  * Interrupt handler for IRQ0.
  */
-void inthandler20(int *esp);
+void inthandler20(int32_t *esp);

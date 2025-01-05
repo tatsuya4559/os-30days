@@ -1,24 +1,23 @@
-#ifndef _MEMORY_H_
-#define _MEMORY_H_
+#pragma once
 
-unsigned int memtest(unsigned int start, unsigned int end);
+#include "types.h"
+
+uint32_t memtest(uint32_t start, uint32_t end);
 
 #define MEMMAN_FREES 4090
 
 typedef struct {
-  unsigned int addr, size;
+  uint32_t addr, size;
 } FreeInfo;
 
 typedef struct {
-  int frees, maxfrees, lostsize, losts;
+  int32_t frees, maxfrees, lostsize, losts;
   FreeInfo free[MEMMAN_FREES];
 } MemoryManager;
 
 void memman_init(MemoryManager *man);
-unsigned int memman_total(MemoryManager *man);
-unsigned int memman_alloc(MemoryManager *man, unsigned int size);
-int memman_free(MemoryManager *man, unsigned int addr, unsigned int size);
-unsigned int memman_alloc_4k(MemoryManager *memman, unsigned int size);
-int memman_free_4k(MemoryManager *memman, unsigned int addr, unsigned int size);
-
-#endif /* _MEMORY_H_ */
+uint32_t memman_total(MemoryManager *man);
+uint32_t memman_alloc(MemoryManager *man, uint32_t size);
+int32_t memman_free(MemoryManager *man, uint32_t addr, uint32_t size);
+uint32_t memman_alloc_4k(MemoryManager *memman, uint32_t size);
+int32_t memman_free_4k(MemoryManager *memman, uint32_t addr, uint32_t size);

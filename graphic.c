@@ -4,9 +4,9 @@
 
 static
 void
-set_palette(int start, int end, Byte *rgb)
+set_palette(int32_t start, int32_t end, uint8_t *rgb)
 {
-  int i, eflags;
+  int32_t i, eflags;
   eflags = _io_load_eflags(); // load interrupt flag
   _io_cli(); // set interrupt flag to 0; forbid interrupting
   _io_out8(0x03c8, start);
@@ -25,7 +25,7 @@ init_palette(void)
 {
   // 普通に初期値を書くと要素数だけ代入文にコンパイルされる
   // 非効率なのでstatic宣言することで一発で初期化できる
-  static Byte table_rgb[16 * 3] = {
+  static uint8_t table_rgb[16 * 3] = {
     0x00, 0x00, 0x00, // 0: black
     0xff, 0x00, 0x00, // 1: light red
     0x00, 0xff, 0x00, // 2: light green
@@ -51,7 +51,7 @@ init_palette(void)
 #define CURSOR_WIDTH 16
 
 void
-init_mouse_cursor8(Byte *mouse, Byte background_color)
+init_mouse_cursor8(uint8_t *mouse, uint8_t background_color)
 {
   static char cursor[CURSOR_HEIGHT][CURSOR_WIDTH] = {
     "**************..",
@@ -72,7 +72,7 @@ init_mouse_cursor8(Byte *mouse, Byte background_color)
     ".............***",
   };
 
-  int x, y;
+  int32_t x, y;
   for (y=0; y<CURSOR_HEIGHT; y++) {
     for (x=0; x<CURSOR_WIDTH; x++) {
       switch (cursor[y][x]) {
@@ -92,10 +92,10 @@ init_mouse_cursor8(Byte *mouse, Byte background_color)
 
 static
 void
-putfont8(Byte *vram, int xsize, int x, int y, Byte c, Byte *font)
+putfont8(uint8_t *vram, int32_t xsize, int32_t x, int32_t y, uint8_t c, uint8_t *font)
 {
-  Byte *p, d;
-  for (int i = 0; i < 16; i++) {
+  uint8_t *p, d;
+  for (int32_t i = 0; i < 16; i++) {
     p = vram + (y + i) * xsize + x;
     d = font[i];
     if ((d & 0x80) != 0) { p[0] = c; }
@@ -110,7 +110,7 @@ putfont8(Byte *vram, int xsize, int x, int y, Byte c, Byte *font)
 }
 
 void
-putfonts8_asc(Byte *vram, int xsize, int x, int y, Byte c, char *string)
+putfonts8_asc(uint8_t *vram, int32_t xsize, int32_t x, int32_t y, uint8_t c, char *string)
 {
   for (char *ch = string; *ch != '\0'; ch++) {
     putfont8(vram, xsize, x, y, c, fonts[*ch]);
@@ -119,10 +119,10 @@ putfonts8_asc(Byte *vram, int xsize, int x, int y, Byte c, char *string)
 }
 
 void
-putblock8_8(Byte *vram, int vxsize, int pxsize,
-            int pysize, int px0, int py0, Byte *buf, int bxsize)
+putblock8_8(uint8_t *vram, int32_t vxsize, int32_t pxsize,
+            int32_t pysize, int32_t px0, int32_t py0, uint8_t *buf, int32_t bxsize)
 {
-  int x, y;
+  int32_t x, y;
   for (y=0; y<pysize; y++) {
     for (x=0; x<pxsize; x++) {
       vram[(py0 + y) * vxsize + (px0 + x)] = buf[y * bxsize + x];
@@ -131,9 +131,9 @@ putblock8_8(Byte *vram, int vxsize, int pxsize,
 }
 
 void
-boxfill8(Byte *vram, int xsize, Byte c, int x0, int y0, int x1, int y1)
+boxfill8(uint8_t *vram, int32_t xsize, uint8_t c, int32_t x0, int32_t y0, int32_t x1, int32_t y1)
 {
-  int x, y;
+  int32_t x, y;
   for (y = y0; y <= y1; y++) {
     for (x = x0; x <= x1; x++) {
       vram[x + y * xsize] = c;
@@ -142,7 +142,7 @@ boxfill8(Byte *vram, int xsize, Byte c, int x0, int y0, int x1, int y1)
 }
 
 void
-init_screen8(Byte *vram, int x, int y)
+init_screen8(uint8_t *vram, int32_t x, int32_t y)
 {
   boxfill8(vram, x, COLOR_DARK_CYAN, 0, 0, x - 1, y - 29);
   boxfill8(vram, x, COLOR_LIGHT_GRAY, 0, y - 28, x - 1, y - 28);

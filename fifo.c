@@ -1,7 +1,7 @@
 #include "fifo.h"
 
 void
-fifo_init(FIFO *fifo, int cap, Byte *buf)
+fifo_init(FIFO *fifo, int32_t cap, uint8_t *buf)
 {
   fifo->buf = buf;
   fifo->reading_next = 0;
@@ -12,7 +12,7 @@ fifo_init(FIFO *fifo, int cap, Byte *buf)
 }
 
 int
-fifo_enqueue(FIFO *fifo, Byte b)
+fifo_enqueue(FIFO *fifo, uint8_t b)
 {
   if (fifo->len >= fifo->cap) {
     fifo->flags |= FIFO_OVERRUN;
@@ -27,10 +27,10 @@ fifo_enqueue(FIFO *fifo, Byte b)
   return 0;
 }
 
-Byte
+uint8_t
 fifo_dequeue(FIFO *fifo)
 {
-  Byte b = fifo->buf[fifo->reading_next];
+  uint8_t b = fifo->buf[fifo->reading_next];
   fifo->len--;
   fifo->reading_next++;
   if (fifo->reading_next == fifo->cap) {

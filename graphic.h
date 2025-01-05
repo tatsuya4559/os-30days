@@ -1,5 +1,4 @@
-#ifndef _GRAPHIC_H_
-#define _GRAPHIC_H_
+#pragma once
 
 #include "common.h"
 
@@ -22,10 +21,8 @@
 #define COLOR_TRANSPARENT  99
 
 void init_palette(void);
-void putfonts8_asc(Byte *vram, int xsize, int x, int y, Byte c, char *string);
-void init_mouse_cursor8(Byte *mouse, Byte background_color);
-void putblock8_8(Byte *vram, int vxsize, int pxsize, int pysize, int px0, int py0, Byte *buf, int bxsize);
-void boxfill8(Byte *vram, int xsize, Byte c, int x0, int y0, int x1, int y1);
-void init_screen8(Byte *vram, int x, int y);
-
-#endif /* _GRAPHIC_H_ */
+void putfonts8_asc(uint8_t *vram, int32_t xsize, int32_t x, int32_t y, uint8_t c, char *string);
+void init_mouse_cursor8(uint8_t *mouse, uint8_t background_color);
+void putblock8_8(uint8_t *vram, int32_t vxsize, int32_t pxsize, int32_t pysize, int32_t px0, int32_t py0, uint8_t *buf, int32_t bxsize);
+void boxfill8(uint8_t *vram, int32_t xsize, uint8_t c, int32_t x0, int32_t y0, int32_t x1, int32_t y1);
+void init_screen8(uint8_t *vram, int32_t x, int32_t y);
