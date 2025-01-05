@@ -144,10 +144,9 @@ hari_main(void)
 
   uint8_t keycode;
   char s[4];
-  int32_t count = 0;
   for (;;) {
-    count++;
-    sprintf(s0, "%d", count);
+    // Print time spent since boot
+    sprintf(s0, "%d", timerctl.count);
     boxfill8(window_layer_buf, 160, COLOR_LIGHT_GRAY, 40, 28, 119, 43);
     putfonts8_asc(window_layer_buf, 160, 40, 28, COLOR_WHITE, s0);
     layer_refresh(layer_win, 40, 28, 120, 44);
