@@ -18,7 +18,7 @@ typedef struct {
    */
   uint32_t fired_at;
   FIFO *bus;
-  uint8_t data;
+  int32_t data;
 } Timer;
 
 typedef struct {

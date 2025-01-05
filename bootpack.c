@@ -81,8 +81,8 @@ hari_main(void)
   MemoryManager *mem_manager = (MemoryManager *) MEMMAN_ADDR;
   LayerController *layerctl;
 
-  uint8_t keybuf[KEY_BUF_SIZE];
-  uint8_t mousebuf[MOUSE_BUF_SIZE];
+  int32_t keybuf[KEY_BUF_SIZE];
+  int32_t mousebuf[MOUSE_BUF_SIZE];
 
   Layer *layer_back;
   Layer *layer_mouse;
@@ -102,7 +102,7 @@ hari_main(void)
   init_pit();
 
   FIFO timerbus;
-  uint8_t timerbuf[TIMER_BUF_SIZE], timerbuf2[TIMER_BUF_SIZE], timerbuf3[TIMER_BUF_SIZE];
+  int32_t timerbuf[TIMER_BUF_SIZE];
   fifo_init(&timerbus, TIMER_BUF_SIZE, timerbuf);
   Timer *timer = timer_alloc();
   timer_init(timer, &timerbus, 1);
