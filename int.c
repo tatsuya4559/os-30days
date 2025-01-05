@@ -1,6 +1,4 @@
 #include "nasmfunc.h"
-#include "graphic.h"
-#include "iolib.h"
 #include "int.h"
 
 #define PORT_KEYDAT 0x0060

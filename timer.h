@@ -27,7 +27,9 @@ typedef struct {
    */
   uint32_t count;
   uint32_t next_fired_at;
-  Timer timers[MAX_TIMERS];
+  uint32_t num_running_timers;
+  Timer *running_timers[MAX_TIMERS];
+  Timer underlying_timers[MAX_TIMERS];
 } TimerCtl;
 
 extern TimerCtl timerctl;
