@@ -23,7 +23,41 @@ init_pit(void)
 
   // Initialize timerctl
   timerctl.count = 0;
-  timerctl.timeout = 0;
+  for (int32_t i = 0; i < MAX_TIMERS; i++) {
+    timerctl.timers[i].state = TIMER_UNUSED;
+  }
+}
+
+Timer *
+timer_alloc(void)
+{
+  for (int32_t i = 0; i < MAX_TIMERS; i++) {
+    if (timerctl.timers[i].state == TIMER_UNUSED) {
+      timerctl.timers[i].state = TIMER_ALLOCATED;
+      return &timerctl.timers[i];
+    }
+  }
+  return NULL;
+}
+
+void
+timer_free(Timer *timer)
+{
+  timer->state = TIMER_UNUSED;
+}
+
+void
+timer_init(Timer *timer, FIFO *bus, uint8_t data)
+{
+  timer->bus = bus;
+  timer->data = data;
+}
+
+void
+timer_set_timeout(Timer *timer, uint32_t timeout)
+{
+  timer->timeout = timeout;
+  timer->state = TIMER_RUNNING;
 }
 
 void
@@ -33,25 +67,13 @@ inthandler20(int32_t *esp)
   _io_out8(PIC0_OCW2, 0x60);
 
   timerctl.count++;
-  if (timerctl.timeout > 0) {
-    timerctl.timeout--;
-    if (timerctl.timeout == 0) {
-      fifo_enqueue(timerctl.bus, timerctl.data);
+  for (int32_t i = 0; i < MAX_TIMERS; i++) {
+    if (timerctl.timers[i].state == TIMER_RUNNING) {
+      timerctl.timers[i].timeout--;
+      if (timerctl.timers[i].timeout == 0) {
+        timerctl.timers[i].state = TIMER_ALLOCATED;
+        fifo_enqueue(timerctl.timers[i].bus, timerctl.timers[i].data);
+      }
     }
   }
-}
-
-void
-set_timer(uint32_t timeout, FIFO *bus, uint8_t data)
-{
-  // Disable interrupts because the timer configuration must be atomic.
-  int eflags = _io_load_eflags();
-  _io_cli();
-
-  timerctl.timeout = timeout;
-  timerctl.bus = bus;
-  timerctl.data = data;
-
-  // Restore interrupts.
-  _io_store_eflags(eflags);
 }

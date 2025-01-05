@@ -81,10 +81,8 @@ hari_main(void)
   MemoryManager *mem_manager = (MemoryManager *) MEMMAN_ADDR;
   LayerController *layerctl;
 
-  FIFO timerbus;
   uint8_t keybuf[KEY_BUF_SIZE];
   uint8_t mousebuf[MOUSE_BUF_SIZE];
-  uint8_t timerbuf[TIMER_BUF_SIZE];
 
   Layer *layer_back;
   Layer *layer_mouse;
@@ -100,11 +98,23 @@ hari_main(void)
 
   fifo_init(&keyfifo, KEY_BUF_SIZE, keybuf);
   fifo_init(&mousefifo, MOUSE_BUF_SIZE, mousebuf);
-  fifo_init(&timerbus, TIMER_BUF_SIZE, timerbuf);
 
   init_pit();
 
-  set_timer(1000, &timerbus, 1);
+  FIFO timerbus, timerbus2, timerbus3;
+  uint8_t timerbuf[TIMER_BUF_SIZE], timerbuf2[TIMER_BUF_SIZE], timerbuf3[TIMER_BUF_SIZE];
+  fifo_init(&timerbus, TIMER_BUF_SIZE, timerbuf);
+  fifo_init(&timerbus2, TIMER_BUF_SIZE, timerbuf2);
+  fifo_init(&timerbus3, TIMER_BUF_SIZE, timerbuf3);
+  Timer *timer = timer_alloc();
+  timer_init(timer, &timerbus, 1);
+  Timer *timer2 = timer_alloc();
+  timer_init(timer2, &timerbus2, 1);
+  Timer *timer3 = timer_alloc();
+  timer_init(timer3, &timerbus3, 1);
+  timer_set_timeout(timer, 1000);
+  timer_set_timeout(timer2, 300);
+  timer_set_timeout(timer3, 50);
 
   _io_out8(PIC0_IMR, 0xf8); // PITとPIC1とキーボードを許可(11111000)
   _io_out8(PIC1_IMR, 0xef); // マウスを許可
@@ -207,7 +217,24 @@ hari_main(void)
       fifo_dequeue(&timerbus); // consume the bus
       putfonts8_asc(background_layer_buf, binfo->scrnx, 0, 64, COLOR_WHITE, "10[sec]");
       layer_refresh(layer_back, 0, 64, 56, 80);
+    } else if (timerbus2.len != 0) {
+      fifo_dequeue(&timerbus2); // consume the bus
+      putfonts8_asc(background_layer_buf, binfo->scrnx, 0, 80, COLOR_WHITE, "3[sec]");
+      layer_refresh(layer_back, 0, 80, 48, 96);
+    } else if (timerbus3.len != 0) {
+      uint8_t i = fifo_dequeue(&timerbus3); // consume the bus
+      putfonts8_asc(background_layer_buf, binfo->scrnx, 0, 96, COLOR_WHITE, "0.5[sec]");
+      if (i != 0) {
+        timer_init(timer3, &timerbus3, 0);
+        boxfill8(background_layer_buf, binfo->scrnx, COLOR_WHITE, 8, 96, 15, 111);
+      } else {
+        timer_init(timer3, &timerbus3, 1);
+        boxfill8(background_layer_buf, binfo->scrnx, COLOR_BLACK, 8, 96, 15, 111);
+      }
+      timer_set_timeout(timer3, 50);
+      layer_refresh(layer_back, 8, 96, 16, 112);
     }
+
     _io_sti(); // 割り込み禁止解除
   }
 }
