@@ -1,10 +1,21 @@
 #include "nasmfunc.h"
 #include "keyboard.h"
 #include "mouse.h"
+#include "int.h"
+
+FIFO *mousefifo;
+int32_t mousedata0;
 
 void
-enable_mouse(MouseDecoder *mdec)
+enable_mouse(
+  FIFO *fifo,
+  int32_t data0,
+  MouseDecoder *mdec
+)
 {
+  mousefifo = fifo;
+  mousedata0 = data0;
+
   wait_KBC_sendready();
   _io_out8(PORT_KEYCMD, KEYCMD_SENDTO_MOUSE);
   wait_KBC_sendready();
@@ -49,3 +60,14 @@ mouse_decode(MouseDecoder *mdec, uint8_t data)
       return -1; // unreachable
   }
 }
+
+/* PS/2マウスからの割り込み */
+void
+inthandler2c(int32_t *esp)
+{
+  _io_out8(PIC1_OCW2, 0x64); // IRQ-12受付完了をPIC1に通知
+  _io_out8(PIC0_OCW2, 0x62); // IRQ-02受付完了をPIC0に通知
+  int32_t data = _io_in8(PORT_KEYDAT);
+  fifo_enqueue(mousefifo, data + mousedata0);
+}
+

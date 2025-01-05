@@ -1,7 +1,6 @@
-#ifndef _KEYBOARD_H_
-#define _KEYBOARD_H_
+#pragma once
+
+#include "fifo.h"
 
 void wait_KBC_sendready(void);
-void init_keyboard(void);
-
-#endif /* _KEYBOARD_H_ */
+void init_keyboard(FIFO *fifo, int32_t data0);

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.h"
+#include "fifo.h"
 
 typedef enum {
   MOUSE_DEC_PHASE_WAITING_0XFA,
@@ -15,5 +16,5 @@ typedef struct {
   int32_t x, y, btn;
 } MouseDecoder;
 
-void enable_mouse(MouseDecoder *mdec);
+void enable_mouse(FIFO *fifo, int32_t data0, MouseDecoder *mdec);
 int32_t mouse_decode(MouseDecoder *mdec, uint8_t data);

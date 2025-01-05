@@ -1,5 +1,4 @@
-#ifndef _INT_H_
-#define _INT_H_
+#pragma once
 
 #include "fifo.h"
 
@@ -17,8 +16,3 @@
 #define  PIC1_ICW4  0x00a1
 
 void init_pic(void);
-
-extern FIFO keyfifo;
-extern FIFO mousefifo;
-
-#endif /* _INT_H_ */
