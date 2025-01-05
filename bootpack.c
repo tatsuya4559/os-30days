@@ -159,10 +159,13 @@ hari_main(void)
 
   uint8_t keycode;
   char s[4];
+  uint32_t count = 0;
   for (;;) {
+    count++;
+
     // Print time spent since boot
-    sprintf(s0, "%d", timerctl.count);
-    print_on_layer(layer_win, 40, 28, COLOR_LIGHT_GRAY, COLOR_WHITE, s0, 10);
+    /* sprintf(s0, "%d", timerctl.count); */
+    /* print_on_layer(layer_win, 40, 28, COLOR_LIGHT_GRAY, COLOR_WHITE, s0, 10); */
 
     _io_cli(); // 割り込み禁止
     if (keyfifo.len != 0) {
@@ -207,9 +210,12 @@ hari_main(void)
       switch (fifo_dequeue(&timerbus)) {
       case 1:
         print_on_layer(layer_back, 0, 64, COLOR_DARK_CYAN, COLOR_WHITE, "10[sec]", 7);
+        sprintf(s, "%d", count);
+        print_on_layer(layer_win, 40, 28, COLOR_LIGHT_GRAY, COLOR_BLACK, s, 10);
         break;
       case 2:
         print_on_layer(layer_back, 0, 80, COLOR_DARK_CYAN, COLOR_WHITE, "3[sec]", 6);
+        count = 0; // Start measuring
         break;
       case 3:
         timer_init(timer3, &timerbus, 4);
