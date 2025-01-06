@@ -92,13 +92,41 @@ timer_set_timeout(Timer *timer, uint32_t timeout)
   _io_sti(); // Enable interrupts
 }
 
+static
+void
+reset_time_count(void)
+{
+  _io_cli();
+
+  uint32_t t0 = timerctl.count;
+  timerctl.count = 0;
+  for (Timer *timer = timerctl.running_timers; timer->fired_at < UINT32_MAX; timer = timer->next) {
+    timer->fired_at -= t0;
+  }
+
+  _io_sti();
+}
+
+static
+void
+timer_fire(Timer *timer)
+{
+  if (timer->fired_at == UINT32_MAX) { // is the sentinel
+    // We can't count more than UINT32_MAX.
+    // So, we reset the counter when it reaches UINT32_MAX.
+    reset_time_count();
+    return;
+  }
+  timer->state = TIMER_ALLOCATED;
+  fifo_enqueue(timer->bus, timer->data);
+}
+
 void
 inthandler20(int32_t *esp)
 {
   // Notify PIC(Programmable Interrupt Controller) that IRQ-00 has been accepted.
   _io_out8(PIC0_OCW2, 0x60);
 
-  // FIXME: This OS cannot count time longer than MAX_UINT32 * 10ms.
   timerctl.count++;
 
   // Monitor the very next timer to be fired.
@@ -109,8 +137,7 @@ inthandler20(int32_t *esp)
   // Fire the timer.
   // FIXME: I don't fire multiple timers simultaneously.
   Timer *timer = timerctl.running_timers;
-  timer->state = TIMER_ALLOCATED;
-  fifo_enqueue(timer->bus, timer->data);
+  timer_fire(timer);
 
   timerctl.running_timers = timer->next;
 }
