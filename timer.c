@@ -135,9 +135,10 @@ inthandler20(int32_t *esp)
   }
 
   // Fire the timer.
-  // FIXME: I don't fire multiple timers simultaneously.
-  Timer *timer = timerctl.running_timers;
-  timer_fire(timer);
+  Timer *t;
+  for (t = timerctl.running_timers; t->fired_at <= timerctl.count; t = t->next) {
+    timer_fire(t);
+  }
 
-  timerctl.running_timers = timer->next;
+  timerctl.running_timers = t;
 }
