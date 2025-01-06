@@ -27,6 +27,13 @@ init_pit(void)
   for (int32_t i = 0; i < MAX_TIMERS; i++) {
     timerctl.underlying_timers[i].state = TIMER_UNUSED;
   }
+
+  // Register a sentinel timer that never fires.
+  Timer *sentinel = timer_alloc();
+  timer_init(sentinel, NULL, 0);
+  sentinel->fired_at = UINT32_MAX;
+  sentinel->state = TIMER_RUNNING;
+  timerctl.running_timers = sentinel;
 }
 
 Timer *
@@ -67,15 +74,7 @@ timer_set_timeout(Timer *timer, uint32_t timeout)
   Timer *prev = NULL;
   Timer *curr = timerctl.running_timers;
   for (;;) {
-    if (curr == NULL) { // The timer is the last one.
-      if (prev == NULL) {
-        timerctl.running_timers = timer;
-      } else {
-        prev->next = timer;
-      }
-      timer->next = NULL;
-      break;
-    }
+    // Timer must be inserted before the sentinel.
     if (timer->fired_at < curr->fired_at) {
       if (prev == NULL) { // The timer is the first one.
         timer->next = timerctl.running_timers;
