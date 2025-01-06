@@ -19,7 +19,6 @@ typedef struct Timer_tag {
   uint32_t fired_at;
   FIFO *bus;
   int32_t data;
-
   /**
    * The next timer in the linked list.
    *
@@ -57,8 +56,8 @@ void init_pit(void);
 void inthandler20(int32_t *esp);
 
 Timer *timer_alloc(void);
-void timer_free(Timer *timer);
 void timer_init(Timer *timer, FIFO *bus, uint8_t data);
+void timer_free(Timer *timer);
 /**
  * Set the timeout in centiseconds.
  */
