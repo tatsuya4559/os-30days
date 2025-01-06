@@ -11,7 +11,7 @@ typedef enum {
   TIMER_RUNNING,
 } TimerState;
 
-typedef struct {
+typedef struct Timer_tag {
   TimerState state;
   /**
    * When count reaches this value, the data is pushed into the bus.
@@ -19,6 +19,13 @@ typedef struct {
   uint32_t fired_at;
   FIFO *bus;
   int32_t data;
+
+  /**
+   * The next timer in the linked list.
+   *
+   * HACK: I embedded this field here to avoid dynamic memory allocation.
+   */
+  struct Timer_tag *next;
 } Timer;
 
 typedef struct {
@@ -26,12 +33,16 @@ typedef struct {
    * The number of interrupts that have occurred since the system started.
    */
   uint32_t count;
-  uint32_t next_fired_at;
-  uint32_t num_running_timers;
-  Timer *running_timers[MAX_TIMERS];
+  /**
+   * The linked list of running timers that are ordered by `fired_at`.
+   */
+  Timer *running_timers;
   Timer underlying_timers[MAX_TIMERS];
 } TimerCtl;
 
+/**
+ * The global timer controller.
+ */
 extern TimerCtl timerctl;
 
 /**

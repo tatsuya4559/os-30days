@@ -23,8 +23,7 @@ init_pit(void)
 
   // Initialize timerctl
   timerctl.count = 0;
-  timerctl.next_fired_at = UINT32_MAX;
-  timerctl.num_running_timers = 0;
+  timerctl.running_timers = NULL;
   for (int32_t i = 0; i < MAX_TIMERS; i++) {
     timerctl.underlying_timers[i].state = TIMER_UNUSED;
   }
@@ -62,10 +61,34 @@ timer_set_timeout(Timer *timer, uint32_t timeout)
 
   timer->fired_at = timeout + timerctl.count;
   timer->state = TIMER_RUNNING;
-  if (timerctl.next_fired_at > timer->fired_at) {
-    timerctl.next_fired_at = timer->fired_at;
+
+  // Insert the timer into the linked list of running timers.
+  // We keep the list sorted so that inthandler works more efficiently.
+  Timer *prev = NULL;
+  Timer *curr = timerctl.running_timers;
+  for (;;) {
+    if (curr == NULL) { // The timer is the last one.
+      if (prev == NULL) {
+        timerctl.running_timers = timer;
+      } else {
+        prev->next = timer;
+      }
+      timer->next = NULL;
+      break;
+    }
+    if (timer->fired_at < curr->fired_at) {
+      if (prev == NULL) { // The timer is the first one.
+        timer->next = timerctl.running_timers;
+        timerctl.running_timers = timer;
+      } else {
+        timer->next = curr;
+        prev->next = timer;
+      }
+      break;
+    }
+    prev = curr;
+    curr = curr->next;
   }
-  timerctl.running_timers[timerctl.num_running_timers++] = timer;
 
   _io_sti(); // Enable interrupts
 }
@@ -80,24 +103,15 @@ inthandler20(int32_t *esp)
   timerctl.count++;
 
   // Monitor the very next timer to be fired.
-  if (timerctl.next_fired_at > timerctl.count) {
+  if (timerctl.running_timers->fired_at > timerctl.count) {
     return;
   }
 
-  timerctl.next_fired_at = UINT32_MAX;
-  for (int32_t i = 0; i < timerctl.num_running_timers; i++) {
-    if (timerctl.running_timers[i]->fired_at <= timerctl.count) {
-      timerctl.running_timers[i]->state = TIMER_ALLOCATED;
-      fifo_enqueue(timerctl.running_timers[i]->bus, timerctl.running_timers[i]->data);
+  // Fire the timer.
+  // FIXME: I don't fire multiple timers simultaneously.
+  Timer *timer = timerctl.running_timers;
+  timer->state = TIMER_ALLOCATED;
+  fifo_enqueue(timer->bus, timer->data);
 
-      // Remove the timer from running_timers
-      for (int32_t j = i; j < timerctl.num_running_timers - 1; j++) {
-        timerctl.running_timers[j] = timerctl.running_timers[j + 1];
-      }
-      timerctl.num_running_timers--;
-      i--;
-    } else if (timerctl.next_fired_at > timerctl.running_timers[i]->fired_at) {
-      timerctl.next_fired_at = timerctl.running_timers[i]->fired_at;
-    }
-  }
+  timerctl.running_timers = timer->next;
 }
