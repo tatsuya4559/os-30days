@@ -68,6 +68,23 @@ make_window8(uint8_t *buf, int32_t xsize, int32_t ysize, char *title)
   }
 }
 
+static
+void
+make_textbox8(Layer *layer, int32_t x0, int32_t y0, int32_t width, int32_t height, int32_t color)
+{
+  int32_t x1 = x0 + width;
+  int32_t y1 = y0 + height;
+  boxfill8(layer->buf, layer->bxsize, COLOR_DARK_GRAY, x0 - 2, y0 - 3, x1 + 1, y0 - 3);
+  boxfill8(layer->buf, layer->bxsize, COLOR_DARK_GRAY, x0 - 3, y0 - 3, x0 - 3, y1 + 1);
+  boxfill8(layer->buf, layer->bxsize, COLOR_WHITE, x0 - 3, y1 + 2, x1 + 1, y1 + 2);
+  boxfill8(layer->buf, layer->bxsize, COLOR_WHITE, x1 + 2, y0 - 3, x1 + 2, y1 + 2);
+  boxfill8(layer->buf, layer->bxsize, COLOR_BLACK, x0 - 1, y0 - 2, x1, y0 - 2);
+  boxfill8(layer->buf, layer->bxsize, COLOR_BLACK, x0 - 2, y0 - 2, x0 - 2, y1);
+  boxfill8(layer->buf, layer->bxsize, COLOR_LIGHT_GRAY, x0 - 2, y1 + 1, x1, y1 + 1);
+  boxfill8(layer->buf, layer->bxsize, COLOR_LIGHT_GRAY, x1 + 1, y0 - 2, x1 + 1, y1);
+  boxfill8(layer->buf, layer->bxsize, color, x0 - 1, y0 - 1, x1, y1);
+}
+
 #define FIFO_BUF_SIZE 128
 
 enum {
@@ -152,6 +169,12 @@ hari_main(void)
   init_screen8(background_layer_buf, binfo->scrnx, binfo->scrny);
   init_mouse_cursor8(mouse_layer_buf, COLOR_TRANSPARENT);
   make_window8(window_layer_buf, 160, 52, "window");
+  make_textbox8(layer_win, 8, 28, 144, 16, COLOR_WHITE);
+
+  int cursor_x = 8;
+  int cursor_c = COLOR_WHITE;
+  boxfill8(layer_win->buf, layer_win->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
+  layer_refresh(layer_win, cursor_x, 28, cursor_x + 8, 44);
 
   layer_slide(layer_back, 0, 0);
   int32_t mx = (binfo->scrnx - 16) / 2;
@@ -191,9 +214,17 @@ hari_main(void)
         if ((c = keytable[keycode]) != 0) {
           s[0] = c;
           s[1] = '\0';
-          print_on_layer(layer_win, 40, 28, COLOR_LIGHT_GRAY, COLOR_BLACK, s, 1);
+          print_on_layer(layer_win, cursor_x, 28, COLOR_WHITE, COLOR_BLACK, s, 1);
+          cursor_x += 8;
         }
       }
+      if (keycode == 0x0e && cursor_x > 8) { // Backspace
+        print_on_layer(layer_win, cursor_x, 28, COLOR_WHITE, COLOR_BLACK, " ", 1);
+        cursor_x -= 8;
+      }
+      // Draw cursor
+      boxfill8(layer_win->buf, layer_win->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
+      layer_refresh(layer_win, cursor_x, 28, cursor_x + 8, 44);
     } else if (EVENT_MOUSE_INPUT <= event) {
       int32_t keycode = event - EVENT_MOUSE_INPUT;
       if (mouse_decode(&mouse_decoder, keycode) != 0) {
@@ -232,16 +263,21 @@ hari_main(void)
       print_on_layer(layer_back, 0, 80, COLOR_DARK_CYAN, COLOR_WHITE, "3[sec]", 6);
     } else if (event == EVENT_TEN_SEC_ELAPSED) {
       print_on_layer(layer_back, 0, 64, COLOR_DARK_CYAN, COLOR_WHITE, "10[sec]", 7);
-    } else if (event == EVENT_CURSOR_ON) {
-      timer_init(timer3, &fifo, EVENT_CURSOR_OFF);
-      boxfill8(background_layer_buf, binfo->scrnx, COLOR_DARK_CYAN, 8, 96, 15, 111);
+    } else {
+      switch (event) {
+        case EVENT_CURSOR_ON:
+          cursor_c = COLOR_BLACK;
+          timer_init(timer3, &fifo, EVENT_CURSOR_OFF);
+          break;
+        case EVENT_CURSOR_OFF:
+          cursor_c = COLOR_WHITE;
+          timer_init(timer3, &fifo, EVENT_CURSOR_ON);
+          break;
+      }
       timer_set_timeout(timer3, 50);
-      layer_refresh(layer_back, 8, 96, 16, 112);
-    } else if (event == EVENT_CURSOR_OFF) {
-      timer_init(timer3, &fifo, EVENT_CURSOR_ON);
-      boxfill8(background_layer_buf, binfo->scrnx, COLOR_WHITE, 8, 96, 15, 111);
-      timer_set_timeout(timer3, 50);
-      layer_refresh(layer_back, 8, 96, 16, 112);
+      // Draw cursor
+      boxfill8(layer_win->buf, layer_win->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
+      layer_refresh(layer_win, cursor_x, 28, cursor_x + 8, 44);
     }
   }
 }
