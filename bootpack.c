@@ -1,6 +1,5 @@
 #include "fifo.h"
 #include "nasmfunc.h"
-#include "common.h"
 #include "iolib.h"
 #include "graphic.h"
 #include "dsctbl.h"
@@ -15,6 +14,14 @@
 
 #define CLOSE_BUTTON_HEIGHT 14
 #define CLOSE_BUTTON_WIDTH 16
+
+#define ADR_BOOTINFO 0x00000ff0
+
+typedef struct {
+  uint8_t cyls, leds, vmode, reserve;
+  short scrnx, scrny;
+  uint8_t *vram;
+} BootInfo;
 
 void
 make_window8(uint8_t *buf, int32_t xsize, int32_t ysize, char *title)
@@ -92,6 +99,8 @@ enum {
   EVENT_CURSOR_ON,
   EVENT_THREE_SEC_ELAPSED = 3,
   EVENT_TEN_SEC_ELAPSED = 10,
+  EVENT_TASK_SWITCH3,
+  EVENT_TASK_SWITCH4,
   EVENT_KEYBOARD_INPUT = 256,
   EVENT_MOUSE_INPUT = 512,
 };
@@ -108,6 +117,39 @@ static char keytable[0x54] = {
   0, '*', 0, ' ', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   '7', '8', '9', '-', '4', '5', '6', '+', '1', '2', '3', '0', '.'
 };
+
+void
+task_b_main(void)
+{
+  FIFO fifo;
+  int32_t fifo_buf[FIFO_BUF_SIZE];
+  fifo_init(&fifo, FIFO_BUF_SIZE, fifo_buf);
+
+  Timer *timer = timer_alloc();
+  timer_init(timer, &fifo, EVENT_TASK_SWITCH3);
+  timer_set_timeout(timer, 2);
+
+  int32_t count = 0;
+  Layer *layer_back = (Layer *) *((int32_t *) 0x0fec);
+  char s[11];
+  for (;;) {
+    count++;
+    sprintf(s, "%d", count);
+    print_on_layer(layer_back, 0, 144, COLOR_DARK_CYAN, COLOR_WHITE, s, 10);
+
+    _io_cli();
+    if (fifo.len == 0) {
+      _io_stihlt();
+      continue;
+    }
+    int32_t event = fifo_dequeue(&fifo);
+    _io_sti();
+    if (event == EVENT_TASK_SWITCH3) {
+      _farjmp(0, 3 * 8);
+      timer_set_timeout(timer, 2);
+    }
+  }
+}
 
 void
 hari_main(void)
@@ -135,6 +177,31 @@ hari_main(void)
 
   init_pit();
 
+  // Set TR(Task Register) to 3 * 8.
+  // That means the current task is the third of GDT.
+  // We need to multiply by 8; this is Intel's specification.
+  _load_tr(3 * 8);
+
+  // TMP: init tss_b
+  int32_t task_b_esp = memman_alloc_4k(mem_manager, 64 * 1024) + 64 * 1024;
+  tss_b.eip = (int32_t) &task_b_main;
+  tss_b.eflags = 0x00000202; // IF = 1
+  tss_b.eax = 0;
+  tss_b.ecx = 0;
+  tss_b.edx = 0;
+  tss_b.ebx = 0;
+  tss_b.esp = task_b_esp;
+  tss_b.ebp = 0;
+  tss_b.esi = 0;
+  tss_b.edi = 0;
+  tss_b.es = 1 * 8;
+  tss_b.cs = 2 * 8;
+  tss_b.ss = 1 * 8;
+  tss_b.ds = 1 * 8;
+  tss_b.fs = 1 * 8;
+  tss_b.gs = 1 * 8;
+  // TMP: init tss_b
+
   Timer *timer = timer_alloc();
   timer_init(timer, &fifo, EVENT_TEN_SEC_ELAPSED);
   Timer *timer2 = timer_alloc();
@@ -144,6 +211,10 @@ hari_main(void)
   timer_set_timeout(timer, 1000);
   timer_set_timeout(timer2, 300);
   timer_set_timeout(timer3, 50);
+
+  Timer *task_switch_timer = timer_alloc();
+  timer_init(task_switch_timer, &fifo, EVENT_TASK_SWITCH4);
+  timer_set_timeout(task_switch_timer, 2);
 
   _io_out8(PIC0_IMR, 0xf8); // PITとPIC1とキーボードを許可(11111000)
   _io_out8(PIC1_IMR, 0xef); // マウスを許可
@@ -170,6 +241,9 @@ hari_main(void)
   init_mouse_cursor8(mouse_layer_buf, COLOR_TRANSPARENT);
   make_window8(window_layer_buf, 160, 52, "window");
   make_textbox8(layer_win, 8, 28, 144, 16, COLOR_WHITE);
+
+  // FIXME:
+  *((int32_t *) 0x0fec) = (int32_t) layer_back;
 
   int cursor_x = 8;
   int cursor_c = COLOR_WHITE;
@@ -268,6 +342,9 @@ hari_main(void)
       print_on_layer(layer_back, 0, 80, COLOR_DARK_CYAN, COLOR_WHITE, "3[sec]", 6);
     } else if (event == EVENT_TEN_SEC_ELAPSED) {
       print_on_layer(layer_back, 0, 64, COLOR_DARK_CYAN, COLOR_WHITE, "10[sec]", 7);
+    } else if (event == EVENT_TASK_SWITCH4) {
+      _farjmp(0, 4 * 8);
+      timer_set_timeout(task_switch_timer, 2);
     } else {
       switch (event) {
         case EVENT_CURSOR_ON:

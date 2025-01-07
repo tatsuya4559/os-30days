@@ -1,11 +1,13 @@
 #include "nasmfunc.h"
-#include "common.h"
 #include "dsctbl.h"
 
 #define  LIMIT_BOTPAK  0x0007ffff
 #define  ADR_BOTPAK    0x00280000
+#define  ADR_GDT       0x00270000
+#define  ADR_IDT       0x0026f800
 #define  AR_CODE32_ER  0x409a
 #define  AR_INTGATE32  0x008e
+#define  AR_TSS32      0x0089
 
 typedef struct {
   short limit_low, base_low;
@@ -46,21 +48,31 @@ set_gatedesc(GateDescriptor *gd, int32_t offset, int32_t selector, int32_t ar)
   gd->offset_high = (offset >> 16) & 0xffff;
 }
 
+TaskStatusSegment tss_a, tss_b;
+
 void
 init_gdtidt(void)
 {
-  SegmentDescriptor *gdt = (SegmentDescriptor *) 0x00270000;
-  GateDescriptor *idt = (GateDescriptor *) 0x0026f800;
+  SegmentDescriptor *gdt = (SegmentDescriptor *) ADR_GDT;
+  GateDescriptor *idt = (GateDescriptor *) ADR_IDT;
 
-  // init GDT
+  // init GDT(Global Descriptor Table)
   for (int32_t i=0; i<8192; i++) {
     set_segmdesc(gdt + i, 0, 0, 0);
   }
   set_segmdesc(gdt + 1, 0xffffffff, 0x00000000, 0x4092);
   set_segmdesc(gdt + 2, LIMIT_BOTPAK, ADR_BOTPAK, AR_CODE32_ER);
+
+  tss_a.ldtr = 0;
+  tss_a.iomap = 0x40000000;
+  tss_b.ldtr = 0;
+  tss_b.iomap = 0x40000000;
+  set_segmdesc(gdt + 3, 103, (int32_t) &tss_a, AR_TSS32);
+  set_segmdesc(gdt + 4, 103, (int32_t) &tss_b, AR_TSS32);
+
   _load_gdtr(0xffff, 0x00270000);
 
-  // init IDT
+  // init IDT(Interrupt Descriptor Table)
   for (int32_t i=0; i< 256; i++) {
     set_gatedesc(idt + i, 0, 0, 0);
   }

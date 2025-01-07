@@ -6,6 +6,7 @@ section .text
 	GLOBAL	_io_out8, _io_out16, _io_out32
 	GLOBAL	_io_load_eflags, _io_store_eflags
 	GLOBAL	_load_gdtr, _load_idtr
+	GLOBAL	_load_tr, _farjmp
 	GLOBAL	_load_cr0, _store_cr0
 	GLOBAL	_asm_inthandler20, _asm_inthandler21, _asm_inthandler2c
 	EXTERN	inthandler20, inthandler21, inthandler2c
@@ -83,6 +84,14 @@ _load_idtr: ; void _load_idtr(int32_t limit, int32_t addr);
 	MOV	AX,[ESP+4]
 	MOV	[ESP+6],AX
 	LIDT	[ESP+6]
+	RET
+
+_load_tr: ; void _load_tr(int32_t tr);
+	LTR	[ESP+4]
+	RET
+
+_farjmp: ; void _farjmp(int32_t eip, int32_t cs);
+	JMP	FAR [ESP+4]
 	RET
 
 _load_cr0: ; int32_t _load_cr0(void);

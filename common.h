@@ -2,14 +2,6 @@
 
 #include "types.h"
 
-typedef struct {
-  uint8_t cyls, leds, vmode, reserve;
-  short scrnx, scrny;
-  uint8_t *vram;
-} BootInfo;
-
-#define ADR_BOOTINFO 0x00000ff0
-
 #define  PORT_KEYDAT           0x0060
 #define  PORT_KEYSTA           0x0064
 #define  PORT_KEYCMD           0x0064
