@@ -138,7 +138,7 @@ hari_main(void)
   layer_setbuf(layer_win, window_layer_buf, 160, 52, -1);
   init_screen8(background_layer_buf, binfo->scrnx, binfo->scrny);
   init_mouse_cursor8(mouse_layer_buf, COLOR_TRANSPARENT);
-  make_window8(window_layer_buf, 160, 52, "counter");
+  make_window8(window_layer_buf, 160, 52, "window");
 
   layer_slide(layer_back, 0, 0);
   int32_t mx = (binfo->scrnx - 16) / 2;
@@ -159,26 +159,23 @@ hari_main(void)
   layer_refresh(layer_back, 0, 0, binfo->scrnx, 48);
 
   char s[4];
-  uint32_t count = 0;
   for (;;) {
-    count++;
-
-    // Print time spent since boot
-    /* sprintf(s0, "%d", timerctl.count); */
-    /* print_on_layer(layer_win, 40, 28, COLOR_LIGHT_GRAY, COLOR_WHITE, s0, 10); */
-
     _io_cli(); // 割り込み禁止
     if (fifo.len == 0) {
-      _io_sti();
+      _io_stihlt();
       continue;
     }
 
     int32_t event = fifo_dequeue(&fifo);
+    _io_sti(); // 割り込み禁止解除
 
     if (EVENT_KEYBOARD_INPUT <= event && event < EVENT_MOUSE_INPUT) {
       int32_t keycode = event - EVENT_KEYBOARD_INPUT;
       sprintf(s0, "%x", keycode);
       print_on_layer(layer_back, 0, 16, COLOR_DARK_CYAN, COLOR_WHITE, s0, 2);
+      if (keycode == 0x1e) {
+        print_on_layer(layer_win, 40, 28, COLOR_LIGHT_GRAY, COLOR_BLACK, "A", 1);
+      }
     } else if (EVENT_MOUSE_INPUT <= event) {
       int32_t keycode = event - EVENT_MOUSE_INPUT;
       if (mouse_decode(&mouse_decoder, keycode) != 0) {
@@ -215,11 +212,8 @@ hari_main(void)
       }
     } else if (event == EVENT_THREE_SEC_ELAPSED) {
       print_on_layer(layer_back, 0, 80, COLOR_DARK_CYAN, COLOR_WHITE, "3[sec]", 6);
-      count = 0; // Start measuring
     } else if (event == EVENT_TEN_SEC_ELAPSED) {
       print_on_layer(layer_back, 0, 64, COLOR_DARK_CYAN, COLOR_WHITE, "10[sec]", 7);
-      sprintf(s, "%d", count);
-      print_on_layer(layer_win, 40, 28, COLOR_LIGHT_GRAY, COLOR_BLACK, s, 10);
     } else if (event == EVENT_CURSOR_ON) {
       timer_init(timer3, &fifo, EVENT_CURSOR_OFF);
       boxfill8(background_layer_buf, binfo->scrnx, COLOR_DARK_CYAN, 8, 96, 15, 111);
@@ -231,7 +225,5 @@ hari_main(void)
       timer_set_timeout(timer3, 50);
       layer_refresh(layer_back, 8, 96, 16, 112);
     }
-
-    _io_sti(); // 割り込み禁止解除
   }
 }
