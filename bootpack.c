@@ -79,6 +79,19 @@ enum {
   EVENT_MOUSE_INPUT = 512,
 };
 
+static char keytable[0x54] = {
+  0,   0,
+  '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-',  '=',
+  0,   0,
+  'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '[', ']',
+  0, 0,
+  'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ';', '\'', '`', 
+  0, '\\',
+  'Z', 'X', 'C', 'V', 'B', 'N', 'M', ',', '.', '/',
+  0, '*', 0, ' ', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  '7', '8', '9', '-', '4', '5', '6', '+', '1', '2', '3', '0', '.'
+};
+
 void
 hari_main(void)
 {
@@ -173,8 +186,13 @@ hari_main(void)
       int32_t keycode = event - EVENT_KEYBOARD_INPUT;
       sprintf(s0, "%x", keycode);
       print_on_layer(layer_back, 0, 16, COLOR_DARK_CYAN, COLOR_WHITE, s0, 2);
-      if (keycode == 0x1e) {
-        print_on_layer(layer_win, 40, 28, COLOR_LIGHT_GRAY, COLOR_BLACK, "A", 1);
+      if (keycode < 0x54) {
+        char c;
+        if ((c = keytable[keycode]) != 0) {
+          s[0] = c;
+          s[1] = '\0';
+          print_on_layer(layer_win, 40, 28, COLOR_LIGHT_GRAY, COLOR_BLACK, s, 1);
+        }
       }
     } else if (EVENT_MOUSE_INPUT <= event) {
       int32_t keycode = event - EVENT_MOUSE_INPUT;
