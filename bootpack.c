@@ -258,6 +258,11 @@ hari_main(void)
         sprintf(s, "(%d, %d)", mx, my);
         print_on_layer(layer_back, 0, 0, COLOR_DARK_CYAN, COLOR_WHITE, s, 10);
         layer_slide(layer_mouse, mx, my);
+
+        if ((mouse_decoder.btn & 0x01) != 0) {
+          // Move the window if draged with left button pressed.
+          layer_slide(layer_win, mx - 80, my - 8);
+        }
       }
     } else if (event == EVENT_THREE_SEC_ELAPSED) {
       print_on_layer(layer_back, 0, 80, COLOR_DARK_CYAN, COLOR_WHITE, "3[sec]", 6);
