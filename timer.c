@@ -6,7 +6,22 @@
 #define PIT_CTRL 0x0043
 #define PIT_CNT0 0x0040
 
-TimerCtl timerctl;
+typedef struct {
+  /**
+   * The number of interrupts that have occurred since the system started.
+   */
+  uint32_t count;
+  /**
+   * The linked list of running timers that are ordered by `fired_at`.
+   */
+  Timer *running_timers;
+  Timer underlying_timers[MAX_TIMERS];
+} TimerController;
+
+/**
+ * The global timer controller.
+ */
+TimerController timerctl;
 
 void
 init_pit(void)
