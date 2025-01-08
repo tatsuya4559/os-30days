@@ -101,6 +101,7 @@ enum {
   EVENT_TEN_SEC_ELAPSED = 10,
   EVENT_TASK_SWITCH3,
   EVENT_TASK_SWITCH4,
+  EVENT_PRINT,
   EVENT_KEYBOARD_INPUT = 256,
   EVENT_MOUSE_INPUT = 512,
 };
@@ -119,7 +120,7 @@ static char keytable[0x54] = {
 };
 
 void
-task_b_main(void)
+task_b_main(Layer *layer_back)
 {
   FIFO fifo;
   int32_t fifo_buf[FIFO_BUF_SIZE];
@@ -129,13 +130,14 @@ task_b_main(void)
   timer_init(timer, &fifo, EVENT_TASK_SWITCH3);
   timer_set_timeout(timer, 2);
 
+  Timer *print_timer = timer_alloc();
+  timer_init(print_timer, &fifo, EVENT_PRINT);
+  timer_set_timeout(print_timer, 1);
+
   int32_t count = 0;
-  Layer *layer_back = (Layer *) *((int32_t *) 0x0fec);
   char s[11];
   for (;;) {
     count++;
-    sprintf(s, "%d", count);
-    print_on_layer(layer_back, 0, 144, COLOR_DARK_CYAN, COLOR_WHITE, s, 10);
 
     _io_cli();
     if (fifo.len == 0) {
@@ -144,9 +146,16 @@ task_b_main(void)
     }
     int32_t event = fifo_dequeue(&fifo);
     _io_sti();
-    if (event == EVENT_TASK_SWITCH3) {
+    switch (event) {
+    case EVENT_TASK_SWITCH3:
       _farjmp(0, 3 * 8);
       timer_set_timeout(timer, 2);
+      break;
+    case EVENT_PRINT:
+      sprintf(s, "%d", count);
+      print_on_layer(layer_back, 0, 144, COLOR_DARK_CYAN, COLOR_WHITE, s, 10);
+      timer_set_timeout(print_timer, 1);
+      break;
     }
   }
 }
@@ -183,7 +192,11 @@ hari_main(void)
   _load_tr(3 * 8);
 
   // TMP: init tss_b
-  int32_t task_b_esp = memman_alloc_4k(mem_manager, 64 * 1024) + 64 * 1024;
+  // Substract 8 bytes from the end of the allocated memory to store an int32_t argument.
+  // |---------------------|<- int32_t(4 byte) ->|
+  // ^                     ^                     ^
+  // ESP                   ESP+4                 End of the segment
+  int32_t task_b_esp = memman_alloc_4k(mem_manager, 64 * 1024) + 64 * 1024 - 8;
   tss_b.eip = (int32_t) &task_b_main;
   tss_b.eflags = 0x00000202; // IF = 1
   tss_b.eax = 0;
@@ -242,8 +255,8 @@ hari_main(void)
   make_window8(window_layer_buf, 160, 52, "window");
   make_textbox8(layer_win, 8, 28, 144, 16, COLOR_WHITE);
 
-  // FIXME:
-  *((int32_t *) 0x0fec) = (int32_t) layer_back;
+  // Arg1 should be at the address of [Stack Pointer + 4 Byte]
+  *((int32_t *) (task_b_esp + 4)) = (int32_t) layer_back;
 
   int cursor_x = 8;
   int cursor_c = COLOR_WHITE;
