@@ -9,6 +9,7 @@
 #include "memory.h"
 #include "layer.h"
 #include "timer.h"
+#include "mtask.h"
 
 #define MEMMAN_ADDR 0x003c0000
 
@@ -99,8 +100,6 @@ enum {
   EVENT_CURSOR_ON,
   EVENT_THREE_SEC_ELAPSED = 3,
   EVENT_TEN_SEC_ELAPSED = 10,
-  EVENT_TASK_SWITCH3,
-  EVENT_TASK_SWITCH4,
   EVENT_PRINT,
   EVENT_KEYBOARD_INPUT = 256,
   EVENT_MOUSE_INPUT = 512,
@@ -126,10 +125,6 @@ task_b_main(Layer *layer_back)
   int32_t fifo_buf[FIFO_BUF_SIZE];
   fifo_init(&fifo, FIFO_BUF_SIZE, fifo_buf);
 
-  Timer *timer = timer_alloc();
-  timer_init(timer, &fifo, EVENT_TASK_SWITCH3);
-  timer_set_timeout(timer, 2);
-
   Timer *print_timer = timer_alloc();
   timer_init(print_timer, &fifo, EVENT_PRINT);
   timer_set_timeout(print_timer, 1);
@@ -147,10 +142,6 @@ task_b_main(Layer *layer_back)
     int32_t event = fifo_dequeue(&fifo);
     _io_sti();
     switch (event) {
-    case EVENT_TASK_SWITCH3:
-      _farjmp(0, 3 * 8);
-      timer_set_timeout(timer, 2);
-      break;
     case EVENT_PRINT:
       sprintf(s, "%d", count);
       print_on_layer(layer_back, 0, 144, COLOR_DARK_CYAN, COLOR_WHITE, s, 10);
@@ -225,10 +216,6 @@ hari_main(void)
   timer_set_timeout(timer2, 300);
   timer_set_timeout(timer3, 50);
 
-  Timer *task_switch_timer = timer_alloc();
-  timer_init(task_switch_timer, &fifo, EVENT_TASK_SWITCH4);
-  timer_set_timeout(task_switch_timer, 2);
-
   _io_out8(PIC0_IMR, 0xf8); // PITとPIC1とキーボードを許可(11111000)
   _io_out8(PIC1_IMR, 0xef); // マウスを許可
 
@@ -258,8 +245,10 @@ hari_main(void)
   // Arg1 should be at the address of [Stack Pointer + 4 Byte]
   *((int32_t *) (task_b_esp + 4)) = (int32_t) layer_back;
 
-  int cursor_x = 8;
-  int cursor_c = COLOR_WHITE;
+  mt_init();
+
+  int32_t cursor_x = 8;
+  int32_t cursor_c = COLOR_WHITE;
   boxfill8(layer_win->buf, layer_win->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
   layer_refresh(layer_win, cursor_x, 28, cursor_x + 8, 44);
 
@@ -355,9 +344,6 @@ hari_main(void)
       print_on_layer(layer_back, 0, 80, COLOR_DARK_CYAN, COLOR_WHITE, "3[sec]", 6);
     } else if (event == EVENT_TEN_SEC_ELAPSED) {
       print_on_layer(layer_back, 0, 64, COLOR_DARK_CYAN, COLOR_WHITE, "10[sec]", 7);
-    } else if (event == EVENT_TASK_SWITCH4) {
-      _farjmp(0, 4 * 8);
-      timer_set_timeout(task_switch_timer, 2);
     } else {
       switch (event) {
         case EVENT_CURSOR_ON:

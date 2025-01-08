@@ -1,5 +1,6 @@
 #include "nasmfunc.h"
 #include "int.h"
+#include "mtask.h"
 #include "timer.h"
 
 #define PIT_CTRL 0x0043
@@ -136,9 +137,19 @@ inthandler20(int32_t *esp)
 
   // Fire the timer.
   Timer *t;
+  bool_t is_taskswitch_fired = FALSE;
   for (t = timerctl.running_timers; t->fired_at <= timerctl.count; t = t->next) {
-    timer_fire(t);
+    if (t != mt_timer) {
+      timer_fire(t);
+    } else {
+      t->state = TIMER_ALLOCATED;
+      is_taskswitch_fired = TRUE;
+    }
   }
 
   timerctl.running_timers = t;
+
+  if (is_taskswitch_fired) {
+    mt_taskswitch();
+  }
 }
