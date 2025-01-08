@@ -2,15 +2,14 @@
 
 #include "types.h"
 
-void init_gdtidt(void);
+#define  ADR_GDT       0x00270000
 
 typedef struct {
-  int32_t backlink, esp0, ss0, esp1, ss1, esp2, ss2, cr3;
-  // 32bit registers
-  int32_t eip, eflags, eax, ecx, edx, ebx, esp, ebp, esi, edi;
-  // 16bit registers
-  int32_t es, cs, ss, ds, fs, gs;
-  int32_t ldtr, iomap;
-} TaskStatusSegment;
+  short limit_low, base_low;
+  uint8_t base_mid, access_right;
+  uint8_t limit_high, base_high;
+} SegmentDescriptor;
 
-extern TaskStatusSegment tss_a, tss_b;
+
+void init_gdtidt(void);
+void set_segmdesc(SegmentDescriptor *sd, uint32_t limit, int32_t base, int32_t ar);

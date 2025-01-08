@@ -154,7 +154,7 @@ inthandler20(int32_t *esp)
   Timer *t;
   bool_t is_taskswitch_fired = FALSE;
   for (t = timerctl.running_timers; t->fired_at <= timerctl.count; t = t->next) {
-    if (t != mt_timer) {
+    if (t != task_timer) {
       timer_fire(t);
     } else {
       t->state = TIMER_ALLOCATED;
@@ -165,6 +165,6 @@ inthandler20(int32_t *esp)
   timerctl.running_timers = t;
 
   if (is_taskswitch_fired) {
-    mt_taskswitch();
+    task_switch();
   }
 }

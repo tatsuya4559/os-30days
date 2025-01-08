@@ -154,78 +154,45 @@ task_b_main(Layer *layer_back)
 void
 hari_main(void)
 {
+  /* Get boot information */
   BootInfo *binfo = (BootInfo *) ADR_BOOTINFO;
-  MouseDecoder mouse_decoder;
-  MemoryManager *mem_manager = (MemoryManager *) MEMMAN_ADDR;
-  LayerController *layerctl;
 
-  FIFO fifo;
-  int32_t fifo_buf[FIFO_BUF_SIZE];
-  fifo_init(&fifo, FIFO_BUF_SIZE, fifo_buf);
-
-  Layer *layer_back;
-  Layer *layer_mouse;
-  Layer *layer_win;
-
-  uint8_t *background_layer_buf;
-  uint8_t mouse_layer_buf[256];
-  uint8_t *window_layer_buf;
-
+  /* Initialize IDT, PIC, and PIT */
   init_gdtidt();
   init_pic();
-  _io_sti();
-
+  _io_sti(); /* IDT/PICの初期化が終わったのでCPUの割り込み禁止を解除 */
   init_pit();
 
-  // Set TR(Task Register) to 3 * 8.
-  // That means the current task is the third of GDT.
-  // We need to multiply by 8; this is Intel's specification.
-  _load_tr(3 * 8);
-
-  // TMP: init tss_b
-  // Substract 8 bytes from the end of the allocated memory to store an int32_t argument.
-  // |---------------------|<- int32_t(4 byte) ->|
-  // ^                     ^                     ^
-  // ESP                   ESP+4                 End of the segment
-  int32_t task_b_esp = memman_alloc_4k(mem_manager, 64 * 1024) + 64 * 1024 - 8;
-  tss_b.eip = (int32_t) &task_b_main;
-  tss_b.eflags = 0x00000202; // IF = 1
-  tss_b.eax = 0;
-  tss_b.ecx = 0;
-  tss_b.edx = 0;
-  tss_b.ebx = 0;
-  tss_b.esp = task_b_esp;
-  tss_b.ebp = 0;
-  tss_b.esi = 0;
-  tss_b.edi = 0;
-  tss_b.es = 1 * 8;
-  tss_b.cs = 2 * 8;
-  tss_b.ss = 1 * 8;
-  tss_b.ds = 1 * 8;
-  tss_b.fs = 1 * 8;
-  tss_b.gs = 1 * 8;
-  // TMP: init tss_b
-
-  Timer *timer = timer_alloc();
-  timer_init(timer, &fifo, EVENT_TEN_SEC_ELAPSED);
-  Timer *timer2 = timer_alloc();
-  timer_init(timer2, &fifo, EVENT_THREE_SEC_ELAPSED);
-  Timer *timer3 = timer_alloc();
-  timer_init(timer3, &fifo, EVENT_CURSOR_ON);
-  timer_set_timeout(timer, 1000);
-  timer_set_timeout(timer2, 300);
-  timer_set_timeout(timer3, 50);
-
-  _io_out8(PIC0_IMR, 0xf8); // PITとPIC1とキーボードを許可(11111000)
-  _io_out8(PIC1_IMR, 0xef); // マウスを許可
-
-  init_keyboard(&fifo, EVENT_KEYBOARD_INPUT);
-  enable_mouse(&fifo, EVENT_MOUSE_INPUT, &mouse_decoder);
-
+  /* Initialize memory manager */
+  MemoryManager *mem_manager = (MemoryManager *) MEMMAN_ADDR;
   uint32_t total_mem_size = memtest(0x00400000, 0xbfffffff);
   memman_init(mem_manager);
   memman_free(mem_manager, 0x00001000, 0x0009e000);
   memman_free(mem_manager, 0x00400000, total_mem_size - 0x00400000);
+
+  /* Initialize Bus */
+  FIFO fifo;
+  int32_t fifo_buf[FIFO_BUF_SIZE];
+  fifo_init(&fifo, FIFO_BUF_SIZE, fifo_buf);
+
+  /* Initialize Devices */
+  MouseDecoder mouse_decoder;
+  LayerController *layerctl;
+  _io_out8(PIC0_IMR, 0xf8); // PITとPIC1とキーボードを許可(11111000)
+  _io_out8(PIC1_IMR, 0xef); // マウスを許可
+  init_keyboard(&fifo, EVENT_KEYBOARD_INPUT);
+  enable_mouse(&fifo, EVENT_MOUSE_INPUT, &mouse_decoder);
+
+  /* Initialize Multi-task Controller */
+  task_init(mem_manager);
+
+  /* Initialize Layers */
+  Layer *layer_back;
+  Layer *layer_mouse;
+  Layer *layer_win;
+  uint8_t *background_layer_buf;
+  uint8_t mouse_layer_buf[256];
+  uint8_t *window_layer_buf;
 
   init_palette();
   layerctl = layerctl_init(mem_manager, binfo->vram, binfo->scrnx, binfo->scrny);
@@ -242,16 +209,13 @@ hari_main(void)
   make_window8(window_layer_buf, 160, 52, "window");
   make_textbox8(layer_win, 8, 28, 144, 16, COLOR_WHITE);
 
-  // Arg1 should be at the address of [Stack Pointer + 4 Byte]
-  *((int32_t *) (task_b_esp + 4)) = (int32_t) layer_back;
-
-  mt_init();
-
+  // Draw cursor
   int32_t cursor_x = 8;
   int32_t cursor_c = COLOR_WHITE;
   boxfill8(layer_win->buf, layer_win->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
   layer_refresh(layer_win, cursor_x, 28, cursor_x + 8, 44);
 
+  // Draw layers
   layer_slide(layer_back, 0, 0);
   int32_t mx = (binfo->scrnx - 16) / 2;
   int32_t my = (binfo->scrny - 28 - 16) / 2;
@@ -260,6 +224,36 @@ hari_main(void)
   layer_updown(layer_back, 0);
   layer_updown(layer_win, 1);
   layer_updown(layer_mouse, 2);
+
+  /* task B */
+  Task *task_b = task_alloc();
+  // Substract 8 bytes from the end of the allocated memory to store an int32_t argument.
+  // |---------------------|<- int32_t(4 byte) ->|
+  // ^                     ^                     ^
+  // ESP                   ESP+4                 End of the segment
+  int32_t task_b_esp = memman_alloc_4k(mem_manager, 64 * 1024) + 64 * 1024 - 8;
+  task_b->tss.eip = (int32_t) &task_b_main;
+  task_b->tss.esp = task_b_esp;
+  task_b->tss.es = 1 * 8;
+  task_b->tss.cs = 2 * 8;
+  task_b->tss.ss = 1 * 8;
+  task_b->tss.ds = 1 * 8;
+  task_b->tss.fs = 1 * 8;
+  task_b->tss.gs = 1 * 8;
+  // Arg1 should be at the address of [Stack Pointer + 4 Byte]
+  *((int32_t *) (task_b_esp + 4)) = (int32_t) layer_back;
+  task_run(task_b);
+
+  /* Timer */
+  Timer *timer = timer_alloc();
+  timer_init(timer, &fifo, EVENT_TEN_SEC_ELAPSED);
+  Timer *timer2 = timer_alloc();
+  timer_init(timer2, &fifo, EVENT_THREE_SEC_ELAPSED);
+  Timer *timer3 = timer_alloc();
+  timer_init(timer3, &fifo, EVENT_CURSOR_ON);
+  timer_set_timeout(timer, 1000);
+  timer_set_timeout(timer2, 300);
+  timer_set_timeout(timer3, 50);
 
   char s0[20];
   sprintf(s0, "(%d, %d)", mx, my);
