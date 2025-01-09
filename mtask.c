@@ -5,6 +5,7 @@
 #define  AR_TSS32   0x0089
 #define  MAX_TASKS  1000
 #define  TASK_GDT0  3 // From which GDT index the tasks start
+#define  TASK_SWITCH_INTERVAL 2 // 20ms
 
 typedef struct {
   int32_t num_running_tasks;
@@ -67,7 +68,8 @@ task_init(MemoryManager *mem_manager)
   _load_tr(task->selector);
 
   task_timer = timer_alloc();
-  timer_set_timeout(task_timer, 2);
+  // do not call timer_init because we don't need to set bus and data.
+  timer_set_timeout(task_timer, TASK_SWITCH_INTERVAL);
 
   return task;
 }
@@ -83,7 +85,7 @@ task_run(Task *task)
 void
 task_switch(void)
 {
-  timer_set_timeout(task_timer, 2);
+  timer_set_timeout(task_timer, TASK_SWITCH_INTERVAL);
   if (taskctl->num_running_tasks <= 1) {
     return;
   }
