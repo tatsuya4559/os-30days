@@ -11,8 +11,9 @@ typedef struct {
   int32_t cap;
   int32_t len;
   int32_t flags;
+  void *metadata;
 } FIFO;
 
-void fifo_init(FIFO *fifo, int32_t cap, int32_t *buf);
+void fifo_init(FIFO *fifo, int32_t cap, int32_t *buf, void *metadata);
 int32_t fifo_enqueue(FIFO *fifo, int32_t b);
 int32_t fifo_dequeue(FIFO *fifo);

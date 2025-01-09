@@ -1,7 +1,8 @@
 #include "fifo.h"
+#include "mtask.h"
 
 void
-fifo_init(FIFO *fifo, int32_t cap, int32_t *buf)
+fifo_init(FIFO *fifo, int32_t cap, int32_t *buf, void *metadata)
 {
   fifo->buf = buf;
   fifo->reading_next = 0;
@@ -9,6 +10,7 @@ fifo_init(FIFO *fifo, int32_t cap, int32_t *buf)
   fifo->cap = cap;
   fifo->len = 0;
   fifo->flags = 0;
+  fifo->metadata = metadata;
 }
 
 int32_t
@@ -23,6 +25,13 @@ fifo_enqueue(FIFO *fifo, int32_t b)
   fifo->writing_next++;
   if (fifo->writing_next == fifo->cap) {
     fifo->writing_next = 0;
+  }
+  // FIXME
+  if (fifo->metadata != NULL) {
+    Task *task = (Task *) fifo->metadata;
+    if (task->status != TASK_RUNNING) {
+      task_run(task);
+    }
   }
   return 0;
 }

@@ -28,5 +28,6 @@ Task *task_init(MemoryManager *mem_manager);
 Task *task_alloc(void);
 void task_run(Task *task);
 void task_switch(void);
+void task_sleep(Task *task);
 
 extern Timer *task_timer;

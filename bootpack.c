@@ -123,7 +123,7 @@ task_b_main(Layer *layer_back)
 {
   FIFO fifo;
   int32_t fifo_buf[FIFO_BUF_SIZE];
-  fifo_init(&fifo, FIFO_BUF_SIZE, fifo_buf);
+  fifo_init(&fifo, FIFO_BUF_SIZE, fifo_buf, NULL);
 
   Timer *print_timer = timer_alloc();
   timer_init(print_timer, &fifo, EVENT_PRINT);
@@ -173,7 +173,7 @@ hari_main(void)
   /* Initialize Bus */
   FIFO fifo;
   int32_t fifo_buf[FIFO_BUF_SIZE];
-  fifo_init(&fifo, FIFO_BUF_SIZE, fifo_buf);
+  fifo_init(&fifo, FIFO_BUF_SIZE, fifo_buf, NULL);
 
   /* Initialize Devices */
   MouseDecoder mouse_decoder;
@@ -184,7 +184,8 @@ hari_main(void)
   enable_mouse(&fifo, EVENT_MOUSE_INPUT, &mouse_decoder);
 
   /* Initialize Multi-task Controller */
-  task_init(mem_manager);
+  Task *task_a = task_init(mem_manager);
+  fifo.metadata = task_a;
 
   /* Initialize Layers */
   Layer *layer_back;
@@ -268,6 +269,7 @@ hari_main(void)
   for (;;) {
     _io_cli(); // 割り込み禁止
     if (fifo.len == 0) {
+      /* task_sleep(task_a); */
       _io_stihlt();
       continue;
     }

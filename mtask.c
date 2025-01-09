@@ -96,3 +96,43 @@ task_switch(void)
   }
   _farjmp(0, taskctl->running_tasks[taskctl->current_task_index]->selector);
 }
+
+void
+task_sleep(Task *task)
+{
+  if (task->status != TASK_RUNNING) {
+    return;
+  }
+
+  // Find the task in the list of running tasks.
+  int32_t i;
+  for (int32_t i = 0; i < taskctl->num_running_tasks; i++) {
+    if (taskctl->running_tasks[i] == task) {
+      break;
+    }
+  }
+
+  // Remove the task from the list of running tasks.
+  if (i < taskctl->current_task_index) {
+    taskctl->current_task_index--;
+  }
+  taskctl->num_running_tasks--;
+  for (; i < taskctl->num_running_tasks; i++) {
+    taskctl->running_tasks[i] = taskctl->running_tasks[i + 1];
+  }
+
+  // Sleep the task.
+  task->status = TASK_ALLOCATED;
+
+  // If the current task is the one to be slept, switch the task.
+  Task *current = taskctl->running_tasks[taskctl->current_task_index];
+  if (task == current) {
+    // task_switch won't switch if there is only one running task.
+    // So, we need to call _farjmp directly.
+    // task_switch();
+    if (taskctl->current_task_index >= taskctl->num_running_tasks) {
+      taskctl->current_task_index = 0;
+    }
+    _farjmp(0, taskctl->running_tasks[taskctl->current_task_index]->selector);
+  }
+}
