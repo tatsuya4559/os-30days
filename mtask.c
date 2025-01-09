@@ -9,7 +9,7 @@
 typedef struct {
   int32_t num_running_tasks;
   int32_t current_task_index;
-  Task *tasks[MAX_TASKS];
+  Task *running_tasks[MAX_TASKS];
   Task tasks0[MAX_TASKS];
 } TaskController;
 
@@ -63,7 +63,7 @@ task_init(MemoryManager *mem_manager)
   task->status = TASK_RUNNING;
   taskctl->num_running_tasks = 1;
   taskctl->current_task_index = 0;
-  taskctl->tasks[0] = task;
+  taskctl->running_tasks[0] = task;
   _load_tr(task->selector);
 
   task_timer = timer_alloc();
@@ -76,7 +76,7 @@ void
 task_run(Task *task)
 {
   task->status = TASK_RUNNING;
-  taskctl->tasks[taskctl->num_running_tasks] = task;
+  taskctl->running_tasks[taskctl->num_running_tasks] = task;
   taskctl->num_running_tasks++;
 }
 
@@ -92,5 +92,5 @@ task_switch(void)
   if (taskctl->current_task_index == taskctl->num_running_tasks) {
     taskctl->current_task_index = 0;
   }
-  _farjmp(0, taskctl->tasks[taskctl->current_task_index]->selector);
+  _farjmp(0, taskctl->running_tasks[taskctl->current_task_index]->selector);
 }
