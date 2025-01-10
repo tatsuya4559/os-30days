@@ -25,7 +25,7 @@ typedef struct {
 } BootInfo;
 
 void
-make_window8(uint8_t *buf, int32_t xsize, int32_t ysize, char *title)
+make_window8(uint8_t *buf, int32_t xsize, int32_t ysize, char *title, bool_t active)
 {
   static char closebtn[CLOSE_BUTTON_HEIGHT][CLOSE_BUTTON_WIDTH] = {
     "OOOOOOOOOOOOOOO@",
@@ -43,6 +43,8 @@ make_window8(uint8_t *buf, int32_t xsize, int32_t ysize, char *title)
     "O$$$$$$$$$$$$$$@",
     "@@@@@@@@@@@@@@@@",
   };
+  uint8_t foreground_color = active ? COLOR_WHITE : COLOR_LIGHT_GRAY;
+  uint8_t background_color = active ? COLOR_DARK_BLUE : COLOR_DARK_GRAY;
   boxfill8(buf,  xsize,  COLOR_DARK_GRAY,   0,        0,        xsize-1,  0);
   boxfill8(buf,  xsize,  COLOR_WHITE,       1,        1,        xsize-2,  1);
   boxfill8(buf,  xsize,  COLOR_DARK_GRAY,   0,        0,        0,        ysize-1);
@@ -50,10 +52,10 @@ make_window8(uint8_t *buf, int32_t xsize, int32_t ysize, char *title)
   boxfill8(buf,  xsize,  COLOR_WHITE,       xsize-2,  1,        xsize-2,  ysize-2);
   boxfill8(buf,  xsize,  COLOR_DARK_GRAY,   xsize-1,  0,        xsize-1,  ysize-1);
   boxfill8(buf,  xsize,  COLOR_LIGHT_GRAY,  2,        2,        xsize-3,  ysize-3);
-  boxfill8(buf,  xsize,  COLOR_DARK_BLUE,   3,        3,        xsize-4,  20);
+  boxfill8(buf,  xsize,  background_color,   3,        3,        xsize-4,  20);
   boxfill8(buf,  xsize,  COLOR_DARK_GRAY,   0,        ysize-1,  xsize-1,  ysize-1);
   boxfill8(buf,  xsize,  COLOR_DARK_GRAY,   1,        ysize-2,  xsize-2,  ysize-2);
-  putfonts8_asc(buf, xsize, 24, 4, COLOR_WHITE, title);
+  putfonts8_asc(buf, xsize, 24, 4, foreground_color, title);
   for (int32_t y = 0; y < CLOSE_BUTTON_HEIGHT; y++) {
     for (int32_t x = 0; x < CLOSE_BUTTON_WIDTH; x++) {
       char c = closebtn[y][x];
@@ -128,6 +130,7 @@ task_b_main(Layer *layer_back)
   timer_set_timeout(print_timer, 1);
 
   int32_t count = 0;
+  int32_t count0 = 0;
   char s[11];
   for (;;) {
     count++;
@@ -141,9 +144,10 @@ task_b_main(Layer *layer_back)
     _io_sti();
     switch (event) {
     case EVENT_PRINT:
-      sprintf(s, "%d", count);
-      print_on_layer(layer_back, 0, 144, COLOR_DARK_CYAN, COLOR_WHITE, s, 10);
-      timer_set_timeout(print_timer, 1);
+      sprintf(s, "%d", count - count0);
+      print_on_layer(layer_back, 24, 28, COLOR_LIGHT_GRAY, COLOR_WHITE, s, 10);
+      count0 = count;
+      timer_set_timeout(print_timer, 100);
       break;
     }
   }
@@ -184,14 +188,17 @@ hari_main(void)
   /* Initialize Multi-task Controller */
   Task *task_a = task_init(mem_manager);
   fifo.metadata = task_a;
+  Task *task_b[3];
 
   /* Initialize Layers */
   Layer *layer_back;
   Layer *layer_mouse;
   Layer *layer_win;
+  Layer *layer_win_b[3];
   uint8_t *background_layer_buf;
   uint8_t mouse_layer_buf[256];
   uint8_t *window_layer_buf;
+  uint8_t *window_layer_buf_b;
 
   init_palette();
   layerctl = layerctl_init(mem_manager, binfo->vram, binfo->scrnx, binfo->scrny);
@@ -205,8 +212,35 @@ hari_main(void)
   layer_setbuf(layer_win, window_layer_buf, 160, 52, -1);
   init_screen8(background_layer_buf, binfo->scrnx, binfo->scrny);
   init_mouse_cursor8(mouse_layer_buf, COLOR_TRANSPARENT);
-  make_window8(window_layer_buf, 160, 52, "window");
+  make_window8(window_layer_buf, 160, 52, "window", TRUE);
   make_textbox8(layer_win, 8, 28, 144, 16, COLOR_WHITE);
+
+  // task B
+  for (int32_t i = 0; i < 3; i++) {
+    layer_win_b[i] = layer_alloc(layerctl);
+    window_layer_buf_b = (uint8_t *) memman_alloc_4k(mem_manager, 144 * 52);
+    layer_setbuf(layer_win_b[i], window_layer_buf_b, 144, 52, -1);
+    char title[10];
+    sprintf(title, "task_b%d", i);
+    make_window8(window_layer_buf_b, 144, 52, title, FALSE);
+    task_b[i] = task_alloc();
+    // Substract 8 bytes from the end of the allocated memory to store an int32_t argument.
+    // |---------------------|<- int32_t(4 byte) ->|
+    // ^                     ^                     ^
+    // ESP                   ESP+4                 End of the segment
+    int32_t task_b_esp = memman_alloc_4k(mem_manager, 64 * 1024) + 64 * 1024 - 8;
+    task_b[i]->tss.eip = (int32_t) &task_b_main;
+    task_b[i]->tss.esp = task_b_esp;
+    task_b[i]->tss.es = 1 * 8;
+    task_b[i]->tss.cs = 2 * 8;
+    task_b[i]->tss.ss = 1 * 8;
+    task_b[i]->tss.ds = 1 * 8;
+    task_b[i]->tss.fs = 1 * 8;
+    task_b[i]->tss.gs = 1 * 8;
+    // Arg1 should be at the address of [Stack Pointer + 4 Byte]
+    *((int32_t *) (task_b_esp + 4)) = (int32_t) layer_win_b[i];
+    task_run(task_b[i]);
+  }
 
   // Draw cursor
   int32_t cursor_x = 8;
@@ -219,29 +253,16 @@ hari_main(void)
   int32_t mx = (binfo->scrnx - 16) / 2;
   int32_t my = (binfo->scrny - 28 - 16) / 2;
   layer_slide(layer_mouse, mx, my);
-  layer_slide(layer_win, 80, 72);
+  layer_slide(layer_win, 8, 56);
+  layer_slide(layer_win_b[0], 168, 56);
+  layer_slide(layer_win_b[1], 8, 116);
+  layer_slide(layer_win_b[2], 168, 116);
   layer_updown(layer_back, 0);
-  layer_updown(layer_win, 1);
-  layer_updown(layer_mouse, 2);
-
-  /* task B */
-  Task *task_b = task_alloc();
-  // Substract 8 bytes from the end of the allocated memory to store an int32_t argument.
-  // |---------------------|<- int32_t(4 byte) ->|
-  // ^                     ^                     ^
-  // ESP                   ESP+4                 End of the segment
-  int32_t task_b_esp = memman_alloc_4k(mem_manager, 64 * 1024) + 64 * 1024 - 8;
-  task_b->tss.eip = (int32_t) &task_b_main;
-  task_b->tss.esp = task_b_esp;
-  task_b->tss.es = 1 * 8;
-  task_b->tss.cs = 2 * 8;
-  task_b->tss.ss = 1 * 8;
-  task_b->tss.ds = 1 * 8;
-  task_b->tss.fs = 1 * 8;
-  task_b->tss.gs = 1 * 8;
-  // Arg1 should be at the address of [Stack Pointer + 4 Byte]
-  *((int32_t *) (task_b_esp + 4)) = (int32_t) layer_back;
-  task_run(task_b);
+  layer_updown(layer_win_b[0], 1);
+  layer_updown(layer_win_b[1], 2);
+  layer_updown(layer_win_b[2], 3);
+  layer_updown(layer_win, 4);
+  layer_updown(layer_mouse, 1000);
 
   /* Timer */
   Timer *timer3 = timer_alloc();
