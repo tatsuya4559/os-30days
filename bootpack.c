@@ -98,8 +98,6 @@ make_textbox8(Layer *layer, int32_t x0, int32_t y0, int32_t width, int32_t heigh
 enum {
   EVENT_CURSOR_OFF,
   EVENT_CURSOR_ON,
-  EVENT_THREE_SEC_ELAPSED = 3,
-  EVENT_TEN_SEC_ELAPSED = 10,
   EVENT_PRINT,
   EVENT_KEYBOARD_INPUT = 256,
   EVENT_MOUSE_INPUT = 512,
@@ -246,14 +244,8 @@ hari_main(void)
   task_run(task_b);
 
   /* Timer */
-  Timer *timer = timer_alloc();
-  timer_init(timer, &fifo, EVENT_TEN_SEC_ELAPSED);
-  Timer *timer2 = timer_alloc();
-  timer_init(timer2, &fifo, EVENT_THREE_SEC_ELAPSED);
   Timer *timer3 = timer_alloc();
   timer_init(timer3, &fifo, EVENT_CURSOR_ON);
-  timer_set_timeout(timer, 1000);
-  timer_set_timeout(timer2, 300);
   timer_set_timeout(timer3, 50);
 
   char s0[20];
@@ -336,10 +328,6 @@ hari_main(void)
           layer_slide(layer_win, mx - 80, my - 8);
         }
       }
-    } else if (event == EVENT_THREE_SEC_ELAPSED) {
-      print_on_layer(layer_back, 0, 80, COLOR_DARK_CYAN, COLOR_WHITE, "3[sec]", 6);
-    } else if (event == EVENT_TEN_SEC_ELAPSED) {
-      print_on_layer(layer_back, 0, 64, COLOR_DARK_CYAN, COLOR_WHITE, "10[sec]", 7);
     } else {
       switch (event) {
         case EVENT_CURSOR_ON:
