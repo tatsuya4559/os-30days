@@ -24,8 +24,9 @@ typedef struct {
   uint8_t *vram;
 } BootInfo;
 
+static
 void
-make_window8(uint8_t *buf, int32_t xsize, int32_t ysize, char *title, bool_t active)
+make_window_title(uint8_t *buf, int32_t xsize, char *title, bool_t active)
 {
   static char closebtn[CLOSE_BUTTON_HEIGHT][CLOSE_BUTTON_WIDTH] = {
     "OOOOOOOOOOOOOOO@",
@@ -45,16 +46,7 @@ make_window8(uint8_t *buf, int32_t xsize, int32_t ysize, char *title, bool_t act
   };
   uint8_t foreground_color = active ? COLOR_WHITE : COLOR_LIGHT_GRAY;
   uint8_t background_color = active ? COLOR_DARK_BLUE : COLOR_DARK_GRAY;
-  boxfill8(buf,  xsize,  COLOR_DARK_GRAY,   0,        0,        xsize-1,  0);
-  boxfill8(buf,  xsize,  COLOR_WHITE,       1,        1,        xsize-2,  1);
-  boxfill8(buf,  xsize,  COLOR_DARK_GRAY,   0,        0,        0,        ysize-1);
-  boxfill8(buf,  xsize,  COLOR_WHITE,       1,        1,        1,        ysize-2);
-  boxfill8(buf,  xsize,  COLOR_WHITE,       xsize-2,  1,        xsize-2,  ysize-2);
-  boxfill8(buf,  xsize,  COLOR_DARK_GRAY,   xsize-1,  0,        xsize-1,  ysize-1);
-  boxfill8(buf,  xsize,  COLOR_LIGHT_GRAY,  2,        2,        xsize-3,  ysize-3);
   boxfill8(buf,  xsize,  background_color,   3,        3,        xsize-4,  20);
-  boxfill8(buf,  xsize,  COLOR_DARK_GRAY,   0,        ysize-1,  xsize-1,  ysize-1);
-  boxfill8(buf,  xsize,  COLOR_DARK_GRAY,   1,        ysize-2,  xsize-2,  ysize-2);
   putfonts8_asc(buf, xsize, 24, 4, foreground_color, title);
   for (int32_t y = 0; y < CLOSE_BUTTON_HEIGHT; y++) {
     for (int32_t x = 0; x < CLOSE_BUTTON_WIDTH; x++) {
@@ -76,6 +68,22 @@ make_window8(uint8_t *buf, int32_t xsize, int32_t ysize, char *title, bool_t act
       buf[(5+y)*xsize + (xsize-21+x)] = c;
     }
   }
+}
+
+static
+void
+make_window8(uint8_t *buf, int32_t xsize, int32_t ysize, char *title, bool_t active)
+{
+  boxfill8(buf,  xsize,  COLOR_DARK_GRAY,   0,        0,        xsize-1,  0);
+  boxfill8(buf,  xsize,  COLOR_WHITE,       1,        1,        xsize-2,  1);
+  boxfill8(buf,  xsize,  COLOR_DARK_GRAY,   0,        0,        0,        ysize-1);
+  boxfill8(buf,  xsize,  COLOR_WHITE,       1,        1,        1,        ysize-2);
+  boxfill8(buf,  xsize,  COLOR_WHITE,       xsize-2,  1,        xsize-2,  ysize-2);
+  boxfill8(buf,  xsize,  COLOR_DARK_GRAY,   xsize-1,  0,        xsize-1,  ysize-1);
+  boxfill8(buf,  xsize,  COLOR_LIGHT_GRAY,  2,        2,        xsize-3,  ysize-3);
+  boxfill8(buf,  xsize,  COLOR_DARK_GRAY,   0,        ysize-1,  xsize-1,  ysize-1);
+  boxfill8(buf,  xsize,  COLOR_DARK_GRAY,   1,        ysize-2,  xsize-2,  ysize-2);
+  make_window_title(buf, xsize, title, active);
 }
 
 static
@@ -349,6 +357,7 @@ hari_main(void)
 
   layer_refresh(layer_back, 0, 0, binfo->scrnx, 48);
 
+  int32_t key_to = 0;
   char s[4];
   for (;;) {
     _io_cli(); // 割り込み禁止
@@ -377,6 +386,19 @@ hari_main(void)
       if (keycode == 0x0e && cursor_x > 8) { // Backspace
         print_on_layer(layer_win, cursor_x, 28, COLOR_WHITE, COLOR_BLACK, " ", 1);
         cursor_x -= 8;
+      }
+      if (keycode == 0x0f) { // Tab
+        if (key_to == 0) {
+          key_to = 1;
+          make_window_title(window_layer_buf, layer_win->bxsize, "task_a", FALSE);
+          make_window_title(console_layer_buf, console_layer->bxsize, "console", TRUE);
+        } else {
+          key_to = 0;
+          make_window_title(window_layer_buf, layer_win->bxsize, "task_a", TRUE);
+          make_window_title(console_layer_buf, console_layer->bxsize, "console", FALSE);
+        }
+        layer_refresh(layer_win, 0, 0, layer_win->bxsize, 21);
+        layer_refresh(console_layer, 0, 0, console_layer->bxsize, 21);
       }
       // Draw cursor
       boxfill8(layer_win->buf, layer_win->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
