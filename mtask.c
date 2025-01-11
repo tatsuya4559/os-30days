@@ -89,17 +89,6 @@ task_run(Task *task, int32_t priority)
   taskctl->num_running_tasks++;
 }
 
-static
-uint32_t
-priority_to_interval(int32_t priority)
-{
-  // Translate priority to interval.
-  // We just use priority as interval(centisecond) for now.
-  // i.e. 1 priority runs 10ms per task switch.
-  //      2 priority runs 20ms per task switch.
-  return (uint32_t) priority;
-}
-
 void
 task_switch(void)
 {
@@ -109,7 +98,11 @@ task_switch(void)
     taskctl->current_task_index = 0;
   }
   Task *next = taskctl->running_tasks[taskctl->current_task_index];
-  timer_set_timeout(task_timer, priority_to_interval(next->priority));
+  // Translate priority to interval.
+  // We just use priority as interval(centisecond) for now.
+  // i.e. 1 priority runs 10ms per task switch.
+  //      2 priority runs 20ms per task switch.
+  timer_set_timeout(task_timer, next->priority);
   if (taskctl->num_running_tasks <= 1) {
     return;
   }
