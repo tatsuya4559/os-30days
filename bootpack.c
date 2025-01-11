@@ -265,9 +265,9 @@ hari_main(void)
   layer_updown(layer_mouse, 1000);
 
   /* Timer */
-  Timer *timer3 = timer_alloc();
-  timer_init(timer3, &fifo, EVENT_CURSOR_ON);
-  timer_set_timeout(timer3, 50);
+  Timer *cursor_timer = timer_alloc();
+  timer_init(cursor_timer, &fifo, EVENT_CURSOR_ON);
+  timer_set_timeout(cursor_timer, 50);
 
   char s0[20];
   sprintf(s0, "(%d, %d)", mx, my);
@@ -353,14 +353,14 @@ hari_main(void)
       switch (event) {
         case EVENT_CURSOR_ON:
           cursor_c = COLOR_BLACK;
-          timer_init(timer3, &fifo, EVENT_CURSOR_OFF);
+          timer_init(cursor_timer, &fifo, EVENT_CURSOR_OFF);
           break;
         case EVENT_CURSOR_OFF:
           cursor_c = COLOR_WHITE;
-          timer_init(timer3, &fifo, EVENT_CURSOR_ON);
+          timer_init(cursor_timer, &fifo, EVENT_CURSOR_ON);
           break;
       }
-      timer_set_timeout(timer3, 50);
+      timer_set_timeout(cursor_timer, 50);
       // Draw cursor
       boxfill8(layer_win->buf, layer_win->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
       layer_refresh(layer_win, cursor_x, 28, cursor_x + 8, 44);
