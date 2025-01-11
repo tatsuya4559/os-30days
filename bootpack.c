@@ -153,6 +153,54 @@ task_b_main(Layer *layer_back)
   }
 }
 
+static
+void
+console_task_main(Layer *layer)
+{
+  Task *self = task_now();
+
+  FIFO fifo;
+  int32_t fifo_buf[FIFO_BUF_SIZE];
+  fifo_init(&fifo, FIFO_BUF_SIZE, fifo_buf, self);
+
+  Timer *timer = timer_alloc();
+  timer_init(timer, &fifo, 1);
+  timer_set_timeout(timer, 50);
+
+  int32_t cursor_x = 8;
+  int32_t cursor_c = COLOR_BLACK;
+
+  int32_t event;
+  for (;;) {
+    _io_cli();
+
+    if (fifo.len == 0) {
+      task_sleep(self);
+      _io_sti();
+      continue;
+    }
+
+    event = fifo_dequeue(&fifo);
+    _io_sti();
+
+    if (event <= 1) { // Cursor blink event
+      switch (event) {
+      case 0:
+        timer_init(timer, &fifo, 1);
+        cursor_c = COLOR_BLACK;
+        break;
+      case 1:
+        timer_init(timer, &fifo, 0);
+        cursor_c = COLOR_WHITE;
+        break;
+      }
+      timer_set_timeout(timer, 50);
+      boxfill8(layer->buf, layer->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
+      layer_refresh(layer, cursor_x, 28, cursor_x + 8, 44);
+    }
+  }
+}
+
 void
 hari_main(void)
 {
@@ -188,7 +236,6 @@ hari_main(void)
   /* Initialize Multi-task Controller */
   Task *task_a = task_init(mem_manager);
   fifo.metadata = task_a;
-  Task *task_b[3];
   task_run(task_a, 1, 0);
 
   /* Initialize Layers */
@@ -199,7 +246,6 @@ hari_main(void)
   uint8_t *background_layer_buf;
   uint8_t mouse_layer_buf[256];
   uint8_t *window_layer_buf;
-  uint8_t *window_layer_buf_b;
 
   init_palette();
   layerctl = layerctl_init(mem_manager, binfo->vram, binfo->scrnx, binfo->scrny);
@@ -217,6 +263,8 @@ hari_main(void)
   make_textbox8(layer_win, 8, 28, 144, 16, COLOR_WHITE);
 
   // task B
+  Task *task_b[3];
+  uint8_t *window_layer_buf_b;
   for (int32_t i = 0; i < 3; i++) {
     layer_win_b[i] = layer_alloc(layerctl);
     window_layer_buf_b = (uint8_t *) memman_alloc_4k(mem_manager, 144 * 52);
@@ -240,8 +288,27 @@ hari_main(void)
     task_b[i]->tss.gs = 1 * 8;
     // Arg1 should be at the address of [Stack Pointer + 4 Byte]
     *((int32_t *) (task_b_esp + 4)) = (int32_t) layer_win_b[i];
-    task_run(task_b[i], 2, i + 1);
+    // FIXME: when run task_b on level=2, console_task fails..
+    task_run(task_b[i], 3, i + 1);
   }
+
+  // console task
+  Layer *console_layer = layer_alloc(layerctl);
+  uint8_t *console_layer_buf = (uint8_t *) memman_alloc_4k(mem_manager, 256 * 165);
+  layer_setbuf(console_layer, console_layer_buf, 256, 165, -1);
+  make_window8(console_layer_buf, 256, 165, "console", FALSE);
+  make_textbox8(console_layer, 8, 28, 240, 128, COLOR_BLACK);
+  Task *console_task = task_alloc();
+  console_task->tss.esp = memman_alloc_4k(mem_manager, 64 * 1024) + 64 * 1024 - 8;
+  console_task->tss.eip = (int32_t) &console_task_main;
+  console_task->tss.es = 1 * 8;
+  console_task->tss.cs = 2 * 8;
+  console_task->tss.ss = 1 * 8;
+  console_task->tss.ds = 1 * 8;
+  console_task->tss.fs = 1 * 8;
+  console_task->tss.gs = 1 * 8;
+  *((int32_t *) (console_task->tss.esp + 4)) = (int32_t) console_layer;
+  task_run(console_task, 2, 2); // level 2, priority 2
 
   // Draw cursor
   int32_t cursor_x = 8;
@@ -258,11 +325,14 @@ hari_main(void)
   layer_slide(layer_win_b[0], 168, 56);
   layer_slide(layer_win_b[1], 8, 116);
   layer_slide(layer_win_b[2], 168, 116);
+  layer_slide(console_layer, 32, 200);
+
   layer_updown(layer_back, 0);
   layer_updown(layer_win_b[0], 1);
   layer_updown(layer_win_b[1], 2);
   layer_updown(layer_win_b[2], 3);
-  layer_updown(layer_win, 4);
+  layer_updown(console_layer, 4);
+  layer_updown(layer_win, 5);
   layer_updown(layer_mouse, 1000);
 
   /* Timer */

@@ -29,6 +29,10 @@ typedef struct {
 Task *task_init(MemoryManager *mem_manager);
 Task *task_alloc(void);
 /**
+ * Get the current running task.
+ */
+Task *task_now(void);
+/**
  * Run the task with the given priority.
  * If the given task is already running, only its priority is updated.
  *

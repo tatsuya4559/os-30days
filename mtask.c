@@ -24,7 +24,6 @@ typedef struct {
 TaskController *taskctl;
 Timer *task_timer;
 
-static
 Task *
 task_now(void)
 {
@@ -246,7 +245,6 @@ task_sleep(Task *task)
   // If the current task is the one to be slept, switch the task.
   if (task == current) {
     determine_next_task_level();
-    current = task_now();
-    _farjmp(0, current->selector);
+    _farjmp(0, task_now()->selector);
   }
 }
