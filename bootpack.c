@@ -127,7 +127,7 @@ task_b_main(Layer *layer_back)
 
   Timer *print_timer = timer_alloc();
   timer_init(print_timer, &fifo, EVENT_PRINT);
-  timer_set_timeout(print_timer, 1);
+  timer_set_timeout(print_timer, 100);
 
   int32_t count = 0;
   int32_t count0 = 0;
@@ -137,7 +137,7 @@ task_b_main(Layer *layer_back)
 
     _io_cli();
     if (fifo.len == 0) {
-      _io_stihlt();
+      _io_sti();
       continue;
     }
     int32_t event = fifo_dequeue(&fifo);
@@ -283,7 +283,7 @@ hari_main(void)
     _io_cli(); // 割り込み禁止
     if (fifo.len == 0) {
       task_sleep(task_a);
-      _io_stihlt();
+      _io_sti();
       continue;
     }
 
