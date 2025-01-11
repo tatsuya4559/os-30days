@@ -122,6 +122,15 @@ task_alloc(void)
   return NULL;
 }
 
+static
+void
+task_idle(void)
+{
+  for (;;) {
+    _io_hlt();
+  }
+}
+
 Task *
 task_init(MemoryManager *mem_manager)
 {
@@ -153,6 +162,19 @@ task_init(MemoryManager *mem_manager)
   task_timer = timer_alloc();
   // do not call timer_init because we don't need to set bus and data.
   timer_set_timeout(task_timer, task->priority);
+
+  // Add an idle task as a sentinel.
+  // Even if all other tasks get asleep, the idle task keeps the OS from hungging.
+  Task *idle = task_alloc();
+  idle->tss.esp = memman_alloc_4k(mem_manager, 64 * 1024) + 64 * 1024;
+  idle->tss.eip = (int32_t) &task_idle;
+  idle->tss.es = 1 * 8;
+  idle->tss.cs = 2 * 8;
+  idle->tss.ss = 1 * 8;
+  idle->tss.ds = 1 * 8;
+  idle->tss.fs = 1 * 8;
+  idle->tss.gs = 1 * 8;
+  task_run(idle, MAX_TASK_LEVELS - 1, 1);
 
   return task;
 }
