@@ -189,6 +189,7 @@ hari_main(void)
   Task *task_a = task_init(mem_manager);
   fifo.metadata = task_a;
   Task *task_b[3];
+  task_run(task_a, 1, 0);
 
   /* Initialize Layers */
   Layer *layer_back;
@@ -239,7 +240,7 @@ hari_main(void)
     task_b[i]->tss.gs = 1 * 8;
     // Arg1 should be at the address of [Stack Pointer + 4 Byte]
     *((int32_t *) (task_b_esp + 4)) = (int32_t) layer_win_b[i];
-    task_run(task_b[i], i + 1);
+    task_run(task_b[i], 2, i + 1);
   }
 
   // Draw cursor

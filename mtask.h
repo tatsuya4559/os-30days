@@ -20,6 +20,7 @@ typedef enum {
 
 typedef struct {
   int32_t selector; // GDT index
+  int32_t level; // level represents a priority group
   int32_t priority;
   TaskStatus status;
   TaskStatusSegment tss;
@@ -34,7 +35,7 @@ Task *task_alloc(void);
  * @param task The task to run.
  * @param priority The priority of the task. If the priority is 0 or less, the priority is not updated.
  */
-void task_run(Task *task, int32_t priority);
+void task_run(Task *task, int32_t level, int32_t priority);
 void task_switch(void);
 void task_sleep(Task *task);
 

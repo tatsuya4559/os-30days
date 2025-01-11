@@ -29,7 +29,7 @@ fifo_enqueue(FIFO *fifo, int32_t b)
   if (fifo->metadata != NULL) {
     Task *task = (Task *) fifo->metadata;
     if (task->status != TASK_RUNNING) {
-      task_run(task, 0);
+      task_run(task, -1, 0);
     }
   }
   return 0;
