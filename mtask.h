@@ -23,6 +23,7 @@ typedef struct {
   int32_t level; // level represents a priority group
   int32_t priority;
   TaskStatus status;
+  FIFO fifo;
   TaskStatusSegment tss;
 } Task;
 

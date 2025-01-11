@@ -167,42 +167,69 @@ console_task_main(Layer *layer)
 {
   Task *self = task_now();
 
-  FIFO fifo;
   int32_t fifo_buf[FIFO_BUF_SIZE];
-  fifo_init(&fifo, FIFO_BUF_SIZE, fifo_buf, self);
+  fifo_init(&self->fifo, FIFO_BUF_SIZE, fifo_buf, self);
 
   Timer *timer = timer_alloc();
-  timer_init(timer, &fifo, 1);
+  timer_init(timer, &self->fifo, 1);
   timer_set_timeout(timer, 50);
 
-  int32_t cursor_x = 8;
+  print_on_layer(layer, 8, 28, COLOR_BLACK, COLOR_WHITE, ">", 1);
+
+  int32_t cursor_x = 16;
   int32_t cursor_c = COLOR_BLACK;
 
   int32_t event;
+  char s[2];
   for (;;) {
     _io_cli();
 
-    if (fifo.len == 0) {
+    if (self->fifo.len == 0) {
       task_sleep(self);
       _io_sti();
       continue;
     }
 
-    event = fifo_dequeue(&fifo);
+    event = fifo_dequeue(&self->fifo);
     _io_sti();
 
-    if (event <= 1) { // Cursor blink event
+    // Cursor blink event
+    if (event <= 1) {
       switch (event) {
       case 0:
-        timer_init(timer, &fifo, 1);
+        timer_init(timer, &self->fifo, 1);
         cursor_c = COLOR_BLACK;
         break;
       case 1:
-        timer_init(timer, &fifo, 0);
+        timer_init(timer, &self->fifo, 0);
         cursor_c = COLOR_WHITE;
         break;
       }
       timer_set_timeout(timer, 50);
+      boxfill8(layer->buf, layer->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
+      layer_refresh(layer, cursor_x, 28, cursor_x + 8, 44);
+    }
+
+    // Keyboard input event
+    if (256 <= event && event <= 511) {
+      char c = event - 256;
+      // Backspace
+      if (c == 0x0e) {
+        if (cursor_x <= 16) {
+          continue;
+        }
+        print_on_layer(layer, cursor_x, 28, COLOR_BLACK, COLOR_WHITE, " ", 1);
+        cursor_x -= 8;
+      } else if (cursor_x < 240) {
+        if (c != 0) {
+          s[0] = c;
+          s[1] = '\0';
+          print_on_layer(layer, cursor_x, 28, COLOR_BLACK, COLOR_WHITE, s, 1);
+          cursor_x += 8;
+        }
+      }
+
+      // Draw cursor
       boxfill8(layer->buf, layer->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
       layer_refresh(layer, cursor_x, 28, cursor_x + 8, 44);
     }
@@ -374,20 +401,37 @@ hari_main(void)
       int32_t keycode = event - EVENT_KEYBOARD_INPUT;
       sprintf(s0, "%x", keycode);
       print_on_layer(layer_back, 0, 16, COLOR_DARK_CYAN, COLOR_WHITE, s0, 2);
+
+      // Print a char
       if (keycode < 0x54) {
-        char c;
-        if ((c = keytable[keycode]) != 0) {
-          s[0] = c;
-          s[1] = '\0';
-          print_on_layer(layer_win, cursor_x, 28, COLOR_WHITE, COLOR_BLACK, s, 1);
-          cursor_x += 8;
+        char c = keytable[keycode];
+        if (key_to == 0) {
+          if (c != 0) {
+            s[0] = c;
+            s[1] = '\0';
+            print_on_layer(layer_win, cursor_x, 28, COLOR_WHITE, COLOR_BLACK, s, 1);
+            cursor_x += 8;
+          }
+        } else if (key_to == 1) {
+          // Add 256 to avoid conflict with curosor event.
+          fifo_enqueue(&console_task->fifo, c + 256);
         }
       }
-      if (keycode == 0x0e && cursor_x > 8) { // Backspace
-        print_on_layer(layer_win, cursor_x, 28, COLOR_WHITE, COLOR_BLACK, " ", 1);
-        cursor_x -= 8;
+
+      // Backspace
+      if (keycode == 0x0e) {
+        if (key_to == 0) {
+          if (cursor_x > 8) {
+            print_on_layer(layer_win, cursor_x, 28, COLOR_WHITE, COLOR_BLACK, " ", 1);
+            cursor_x -= 8;
+          }
+        } else if (key_to == 1) {
+          fifo_enqueue(&console_task->fifo, keycode + 256);
+        }
       }
-      if (keycode == 0x0f) { // Tab
+
+      // Tab
+      if (keycode == 0x0f) {
         if (key_to == 0) {
           key_to = 1;
           make_window_title(window_layer_buf, layer_win->bxsize, "task_a", FALSE);
@@ -400,9 +444,11 @@ hari_main(void)
         layer_refresh(layer_win, 0, 0, layer_win->bxsize, 21);
         layer_refresh(console_layer, 0, 0, console_layer->bxsize, 21);
       }
+
       // Draw cursor
       boxfill8(layer_win->buf, layer_win->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
       layer_refresh(layer_win, cursor_x, 28, cursor_x + 8, 44);
+
     } else if (EVENT_MOUSE_INPUT <= event) {
       int32_t keycode = event - EVENT_MOUSE_INPUT;
       if (mouse_decode(&mouse_decoder, keycode) != 0) {
