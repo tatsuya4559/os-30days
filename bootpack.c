@@ -239,7 +239,7 @@ hari_main(void)
     task_b[i]->tss.gs = 1 * 8;
     // Arg1 should be at the address of [Stack Pointer + 4 Byte]
     *((int32_t *) (task_b_esp + 4)) = (int32_t) layer_win_b[i];
-    task_run(task_b[i]);
+    task_run(task_b[i], i + 1);
   }
 
   // Draw cursor

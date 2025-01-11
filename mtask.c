@@ -62,6 +62,7 @@ task_init(MemoryManager *mem_manager)
   }
   Task *task = task_alloc();
   task->status = TASK_RUNNING;
+  task->priority = 2;
   taskctl->num_running_tasks = 1;
   taskctl->current_task_index = 0;
   taskctl->running_tasks[0] = task;
@@ -75,26 +76,44 @@ task_init(MemoryManager *mem_manager)
 }
 
 void
-task_run(Task *task)
+task_run(Task *task, int32_t priority)
 {
+  if (priority > 0) {
+    task->priority = priority;
+  }
+  if (task->status == TASK_RUNNING) {
+    return;
+  }
   task->status = TASK_RUNNING;
   taskctl->running_tasks[taskctl->num_running_tasks] = task;
   taskctl->num_running_tasks++;
 }
 
+static
+uint32_t
+priority_to_interval(int32_t priority)
+{
+  // Translate priority to interval.
+  // We just use priority as interval(centisecond) for now.
+  // i.e. 1 priority runs 10ms per task switch.
+  //      2 priority runs 20ms per task switch.
+  return (uint32_t) priority;
+}
+
 void
 task_switch(void)
 {
-  timer_set_timeout(task_timer, TASK_SWITCH_INTERVAL);
-  if (taskctl->num_running_tasks <= 1) {
-    return;
-  }
   // Round-robin
   taskctl->current_task_index++;
   if (taskctl->current_task_index == taskctl->num_running_tasks) {
     taskctl->current_task_index = 0;
   }
-  _farjmp(0, taskctl->running_tasks[taskctl->current_task_index]->selector);
+  Task *next = taskctl->running_tasks[taskctl->current_task_index];
+  timer_set_timeout(task_timer, priority_to_interval(next->priority));
+  if (taskctl->num_running_tasks <= 1) {
+    return;
+  }
+  _farjmp(0, next->selector);
 }
 
 void

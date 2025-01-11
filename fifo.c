@@ -26,11 +26,10 @@ fifo_enqueue(FIFO *fifo, int32_t b)
   if (fifo->writing_next == fifo->cap) {
     fifo->writing_next = 0;
   }
-  // FIXME
   if (fifo->metadata != NULL) {
     Task *task = (Task *) fifo->metadata;
     if (task->status != TASK_RUNNING) {
-      task_run(task);
+      task_run(task, 0);
     }
   }
   return 0;
