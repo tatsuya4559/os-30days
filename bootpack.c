@@ -282,7 +282,7 @@ hari_main(void)
   for (;;) {
     _io_cli(); // 割り込み禁止
     if (fifo.len == 0) {
-      /* task_sleep(task_a); */
+      task_sleep(task_a);
       _io_stihlt();
       continue;
     }

@@ -103,10 +103,13 @@ task_sleep(Task *task)
   if (task->status != TASK_RUNNING) {
     return;
   }
+  if (taskctl->num_running_tasks <= 1) {
+    return;
+  }
 
   // Find the task in the list of running tasks.
   int32_t i;
-  for (int32_t i = 0; i < taskctl->num_running_tasks; i++) {
+  for (i = 0; i < taskctl->num_running_tasks; i++) {
     if (taskctl->running_tasks[i] == task) {
       break;
     }
