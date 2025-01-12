@@ -147,12 +147,23 @@ static char shifted_keytable[0x80] = {
 
 static
 char
-keycode_to_char(int32_t keycode, bool_t with_shift)
+keycode_to_char(int32_t keycode, bool_t with_shift, bool_t with_capslock)
 {
+  char c;
   if (with_shift) {
-    return shifted_keytable[keycode];
+    c = shifted_keytable[keycode];
+  } else {
+    c = keytable[keycode];
   }
-  return keytable[keycode];
+  if (with_capslock) {
+    // Invert case
+    if ('a' <= c && c <= 'z') {
+      c -= 0x20;
+    } else if ('A' <= c && c <= 'Z') {
+      c += 0x20;
+    }
+  }
+  return c;
 }
 
 void
@@ -416,6 +427,12 @@ hari_main(void)
   int32_t key_to = 0;
   char s[4];
   bool_t shift_pressed = FALSE;
+
+  // forth bit of leds indicates ScallLock
+  // fifth bit of leds indicates NumLock
+  // sixth bit of leds indicates CapsLock
+  uint8_t key_leds = (binfo->leds >> 4) & 0b111;
+  bool_t caps_locked = key_leds & 0b100 != 0;
   for (;;) {
     _io_cli(); // 割り込み禁止
     if (fifo.len == 0) {
@@ -444,7 +461,7 @@ hari_main(void)
 
       // Print a char
       if (keycode < 0x54) {
-        char c = keycode_to_char(keycode, shift_pressed);
+        char c = keycode_to_char(keycode, shift_pressed, caps_locked);
         if (key_to == 0) {
           if (c != 0) {
             s[0] = c;
