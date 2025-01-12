@@ -113,18 +113,47 @@ enum {
   EVENT_MOUSE_INPUT = 512,
 };
 
-static char keytable[0x54] = {
+static char keytable[0x80] = {
   0,   0,
   '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-',  '=',
   0,   0,
-  'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '[', ']',
+  'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']',
   0, 0,
-  'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ';', '\'', '`', 
+  'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', '\'', '`',
   0, '\\',
-  'Z', 'X', 'C', 'V', 'B', 'N', 'M', ',', '.', '/',
+  'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/',
   0, '*', 0, ' ', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  '7', '8', '9', '-', '4', '5', '6', '+', '1', '2', '3', '0', '.'
+  '7', '8', '9', '-', '4', '5', '6', '+', '1', '2', '3', '0', '.',
+  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+  0,   0,   0,   0x5c, 0,  0,   0,   0,   0,   0,   0,   0,   0,   0x5c, 0,  0
 };
+
+static char shifted_keytable[0x80] = {
+  0,   0,
+  '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_', '+',
+  0x08, 0,
+  'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '{', '}',
+  0x0a, 0,
+  'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ':', '"', '~',
+  0, '|',
+  'Z', 'X', 'C', 'V', 'B', 'N', 'M', '<', '>', '?',
+  0, '*', 0, ' ', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  '7', '8', '9', '-', '4', '5', '6', '+', '1', '2', '3', '0', '.',
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, '_', 0, 0, 0, 0, 0, 0, 0, 0, 0, '|', 0, 0
+};
+
+static
+char
+keycode_to_char(int32_t keycode, bool_t with_shift)
+{
+  if (with_shift) {
+    return shifted_keytable[keycode];
+  }
+  return keytable[keycode];
+}
 
 void
 task_b_main(Layer *layer_back)
@@ -386,6 +415,7 @@ hari_main(void)
 
   int32_t key_to = 0;
   char s[4];
+  bool_t shift_pressed = FALSE;
   for (;;) {
     _io_cli(); // 割り込み禁止
     if (fifo.len == 0) {
@@ -402,9 +432,19 @@ hari_main(void)
       sprintf(s0, "%x", keycode);
       print_on_layer(layer_back, 0, 16, COLOR_DARK_CYAN, COLOR_WHITE, s0, 2);
 
+      // Shift key
+      if (keycode == 0x2a || keycode == 0x36) {
+        shift_pressed = TRUE;
+        continue;
+      }
+      if (keycode == 0xaa || keycode == 0xb6) {
+        shift_pressed = FALSE;
+        continue;
+      }
+
       // Print a char
       if (keycode < 0x54) {
-        char c = keytable[keycode];
+        char c = keycode_to_char(keycode, shift_pressed);
         if (key_to == 0) {
           if (c != 0) {
             s[0] = c;
