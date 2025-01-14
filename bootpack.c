@@ -18,6 +18,8 @@
 
 #define ADR_BOOTINFO 0x00000ff0
 
+#define KEYCMD_LED 0xed
+
 typedef struct {
   uint8_t cyls, leds, vmode, reserve;
   short scrnx, scrny;
@@ -433,7 +435,21 @@ hari_main(void)
   // sixth bit of leds indicates CapsLock
   uint8_t key_leds = (binfo->leds >> 4) & 0b111;
   bool_t caps_locked = key_leds & 0b100 != 0;
+  int32_t keycmd_wait = -1;
+
+  FIFO keycmd;
+  int32_t keycmd_buf[FIFO_BUF_SIZE];
+  fifo_init(&keycmd, FIFO_BUF_SIZE, keycmd_buf, 0);
+  fifo_enqueue(&keycmd, KEYCMD_LED);
+  fifo_enqueue(&keycmd, key_leds);
+
   for (;;) {
+    if (keycmd.len > 0 && keycmd_wait < 0) {
+      keycmd_wait = fifo_dequeue(&keycmd);
+      wait_KBC_sendready();
+      _io_out8(PORT_KEYDAT, keycmd_wait);
+    }
+
     _io_cli(); // 割り込み禁止
     if (fifo.len == 0) {
       task_sleep(task_a);
@@ -448,6 +464,34 @@ hari_main(void)
       int32_t keycode = event - EVENT_KEYBOARD_INPUT;
       sprintf(s0, "%x", keycode);
       print_on_layer(layer_back, 0, 16, COLOR_DARK_CYAN, COLOR_WHITE, s0, 2);
+
+      // CapsLock
+      if (keycode == 0x3a) {
+        key_leds ^= 0b100;
+        fifo_enqueue(&keycmd, KEYCMD_LED);
+        fifo_enqueue(&keycmd, key_leds);
+      }
+      // NumLock
+      if (keycode == 0x45) {
+        key_leds ^= 0b010;
+        fifo_enqueue(&keycmd, KEYCMD_LED);
+        fifo_enqueue(&keycmd, key_leds);
+      }
+      // ScrollLock
+      if (keycode == 0x46) {
+        key_leds ^= 0b001;
+        fifo_enqueue(&keycmd, KEYCMD_LED);
+        fifo_enqueue(&keycmd, key_leds);
+      }
+      // LED status ok
+      if (keycode == 0xfa) {
+        keycmd_wait = -1;
+      }
+      // LED status error
+      if (keycode == 0xfe) {
+        wait_KBC_sendready();
+        _io_out8(PORT_KEYDAT, keycmd_wait);
+      }
 
       // Shift key
       if (keycode == 0x2a || keycode == 0x36) {
