@@ -248,6 +248,9 @@ console_task_main(Layer *layer)
         break;
       }
       timer_set_timeout(timer, 50);
+      if (!layer_is_active(layer)) {
+        cursor_c = COLOR_BLACK;
+      }
       boxfill8(layer->buf, layer->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
       layer_refresh(layer, cursor_x, 28, cursor_x + 8, 44);
     }
@@ -272,6 +275,9 @@ console_task_main(Layer *layer)
       }
 
       // Draw cursor
+      if (!layer_is_active(layer)) {
+        cursor_c = COLOR_BLACK;
+      }
       boxfill8(layer->buf, layer->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
       layer_refresh(layer, cursor_x, 28, cursor_x + 8, 44);
     }
@@ -329,6 +335,7 @@ hari_main(void)
   layer_back = layer_alloc(layerctl);
   layer_mouse = layer_alloc(layerctl);
   layer_win = layer_alloc(layerctl);
+  layer_activate(layer_win);
   background_layer_buf = (uint8_t *) memman_alloc_4k(mem_manager, binfo->scrnx * binfo->scrny);
   window_layer_buf = (uint8_t *) memman_alloc_4k(mem_manager, 160 * 52);
   layer_setbuf(layer_back, background_layer_buf, binfo->scrnx, binfo->scrny, -1);
@@ -537,16 +544,21 @@ hari_main(void)
           key_to = 1;
           make_window_title(window_layer_buf, layer_win->bxsize, "task_a", FALSE);
           make_window_title(console_layer_buf, console_layer->bxsize, "console", TRUE);
+          layer_activate(console_layer);
         } else {
           key_to = 0;
           make_window_title(window_layer_buf, layer_win->bxsize, "task_a", TRUE);
           make_window_title(console_layer_buf, console_layer->bxsize, "console", FALSE);
+          layer_activate(layer_win);
         }
         layer_refresh(layer_win, 0, 0, layer_win->bxsize, 21);
         layer_refresh(console_layer, 0, 0, console_layer->bxsize, 21);
       }
 
       // Draw cursor
+      if (!layer_is_active(layer_win)) {
+        cursor_c = COLOR_WHITE;
+      }
       boxfill8(layer_win->buf, layer_win->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
       layer_refresh(layer_win, cursor_x, 28, cursor_x + 8, 44);
 
@@ -602,6 +614,9 @@ hari_main(void)
       }
       timer_set_timeout(cursor_timer, 50);
       // Draw cursor
+      if (!layer_is_active(layer_win)) {
+        cursor_c = COLOR_WHITE;
+      }
       boxfill8(layer_win->buf, layer_win->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
       layer_refresh(layer_win, cursor_x, 28, cursor_x + 8, 44);
     }

@@ -21,6 +21,7 @@ layerctl_init(MemoryManager *memman, uint8_t *vram, int32_t xsize, int32_t ysize
     ctl->layers0[i].flags = LAYER_UNUSED;
     ctl->layers0[i].ctl = ctl;
   }
+  ctl->active_layer = NULL;
 
 err:
   return ctl;
@@ -35,6 +36,9 @@ layer_alloc(LayerController *ctl)
       layer = &ctl->layers0[i];
       layer->flags = LAYER_USED;
       layer->zindex = -1; // not shown
+      if (ctl->active_layer == NULL) {
+        layer_activate(layer);
+      }
       return layer;
     }
   }
@@ -247,4 +251,16 @@ layer_free(Layer *layer)
     layer_updown(layer, -1);
   }
   layer->flags = LAYER_UNUSED;
+}
+
+void
+layer_activate(Layer *layer)
+{
+  layer->ctl->active_layer = layer;
+}
+
+bool_t
+layer_is_active(Layer *layer)
+{
+  return layer->ctl->active_layer == layer;
 }
