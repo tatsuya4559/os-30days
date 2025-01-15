@@ -446,7 +446,6 @@ hari_main(void)
 
   layer_refresh(layer_back, 0, 0, binfo->scrnx, 48);
 
-  int32_t key_to = 0;
   char s[4];
   bool_t shift_pressed = FALSE;
 
@@ -526,14 +525,14 @@ hari_main(void)
       // Print a char
       if (keycode < 0x54) {
         char c = keycode_to_char(keycode, shift_pressed, caps_locked);
-        if (key_to == 0) {
+        if (layer_is_active(layer_win)) {
           if (c != 0) {
             s[0] = c;
             s[1] = '\0';
             print_on_layer(layer_win, cursor_x, 28, COLOR_WHITE, COLOR_BLACK, s, 1);
             cursor_x += 8;
           }
-        } else if (key_to == 1) {
+        } else if (layer_is_active(console_layer)) {
           // Add 256 to avoid conflict with curosor event.
           fifo_enqueue(&console_task->fifo, c + 256);
         }
@@ -541,32 +540,30 @@ hari_main(void)
 
       // Backspace
       if (keycode == 0x0e) {
-        if (key_to == 0) {
+        if (layer_is_active(layer_win)) {
           if (cursor_x > 8) {
             print_on_layer(layer_win, cursor_x, 28, COLOR_WHITE, COLOR_BLACK, " ", 1);
             cursor_x -= 8;
           }
-        } else if (key_to == 1) {
+        } else if (layer_is_active(console_layer)) {
           fifo_enqueue(&console_task->fifo, keycode + 256);
         }
       }
 
       // Enter
       if (keycode == 0x1c) {
-        if (key_to == 1) {
+        if (layer_is_active(console_layer)) {
           fifo_enqueue(&console_task->fifo, keycode + 256);
         }
       }
 
       // Tab
       if (keycode == 0x0f) {
-        if (key_to == 0) {
-          key_to = 1;
+        if (layer_is_active(layer_win)) {
           make_window_title(window_layer_buf, layer_win->bxsize, "task_a", FALSE);
           make_window_title(console_layer_buf, console_layer->bxsize, "console", TRUE);
           layer_activate(console_layer);
         } else {
-          key_to = 0;
           make_window_title(window_layer_buf, layer_win->bxsize, "task_a", TRUE);
           make_window_title(console_layer_buf, console_layer->bxsize, "console", FALSE);
           layer_activate(layer_win);
