@@ -462,6 +462,7 @@ hari_main(void)
   fifo_enqueue(&keycmd, KEYCMD_LED);
   fifo_enqueue(&keycmd, key_leds);
 
+MAIN_LOOP:
   for (;;) {
     if (keycmd.len > 0 && keycmd_wait < 0) {
       keycmd_wait = fifo_dequeue(&keycmd);
@@ -484,81 +485,43 @@ hari_main(void)
       sprintf(s0, "%x", keycode);
       print_on_layer(layer_back, 0, 16, COLOR_DARK_CYAN, COLOR_WHITE, s0, 2);
 
-      // CapsLock
-      if (keycode == 0x3a) {
+      switch (keycode) {
+      /* Lock keys */
+      case 0x3a: // CapsLock
         key_leds ^= 0b100;
         fifo_enqueue(&keycmd, KEYCMD_LED);
         fifo_enqueue(&keycmd, key_leds);
-      }
-      // NumLock
-      if (keycode == 0x45) {
+        break;
+      case 0x45: // NumLock
         key_leds ^= 0b010;
         fifo_enqueue(&keycmd, KEYCMD_LED);
         fifo_enqueue(&keycmd, key_leds);
-      }
-      // ScrollLock
-      if (keycode == 0x46) {
+        break;
+      case 0x46: // ScrollLock
         key_leds ^= 0b001;
         fifo_enqueue(&keycmd, KEYCMD_LED);
         fifo_enqueue(&keycmd, key_leds);
-      }
-      // LED status ok
-      if (keycode == 0xfa) {
+        break;
+      case 0xfa: // LED status ok
         keycmd_wait = -1;
-      }
-      // LED status error
-      if (keycode == 0xfe) {
+        break;
+      case 0xfe: // LED status error
         wait_KBC_sendready();
         _io_out8(PORT_KEYDAT, keycmd_wait);
-      }
+        break;
 
-      // Shift key
-      if (keycode == 0x2a || keycode == 0x36) {
+      /* Shift keys */
+      case 0x2a: // Left shift pressed
+      case 0x36: // Right shift pressed
         shift_pressed = TRUE;
-        continue;
-      }
-      if (keycode == 0xaa || keycode == 0xb6) {
+        goto MAIN_LOOP;
+      case 0xaa: // Left shift released
+      case 0xb6: // Right shift released
         shift_pressed = FALSE;
-        continue;
-      }
+        goto MAIN_LOOP;
 
-      // Print a char
-      if (keycode < 0x54) {
-        char c = keycode_to_char(keycode, shift_pressed, caps_locked);
-        if (layer_is_active(layer_win)) {
-          if (c != 0) {
-            s[0] = c;
-            s[1] = '\0';
-            print_on_layer(layer_win, cursor_x, 28, COLOR_WHITE, COLOR_BLACK, s, 1);
-            cursor_x += 8;
-          }
-        } else if (layer_is_active(console_layer)) {
-          // Add 256 to avoid conflict with curosor event.
-          fifo_enqueue(&console_task->fifo, c + 256);
-        }
-      }
-
-      // Backspace
-      if (keycode == 0x0e) {
-        if (layer_is_active(layer_win)) {
-          if (cursor_x > 8) {
-            print_on_layer(layer_win, cursor_x, 28, COLOR_WHITE, COLOR_BLACK, " ", 1);
-            cursor_x -= 8;
-          }
-        } else if (layer_is_active(console_layer)) {
-          fifo_enqueue(&console_task->fifo, keycode + 256);
-        }
-      }
-
-      // Enter
-      if (keycode == 0x1c) {
-        if (layer_is_active(console_layer)) {
-          fifo_enqueue(&console_task->fifo, keycode + 256);
-        }
-      }
-
-      // Tab
-      if (keycode == 0x0f) {
+      /* Task switch keys */
+      case 0x0f: // Tab
         if (layer_is_active(layer_win)) {
           make_window_title(window_layer_buf, layer_win->bxsize, "task_a", FALSE);
           make_window_title(console_layer_buf, console_layer->bxsize, "console", TRUE);
@@ -570,6 +533,41 @@ hari_main(void)
         }
         layer_refresh(layer_win, 0, 0, layer_win->bxsize, 21);
         layer_refresh(console_layer, 0, 0, console_layer->bxsize, 21);
+        break;
+
+      /* Char keys */
+      case 0x0e: // Backspace
+        if (layer_is_active(layer_win)) {
+          if (cursor_x > 8) {
+            print_on_layer(layer_win, cursor_x, 28, COLOR_WHITE, COLOR_BLACK, " ", 1);
+            cursor_x -= 8;
+          }
+        } else if (layer_is_active(console_layer)) {
+          fifo_enqueue(&console_task->fifo, keycode + 256);
+        }
+        break;
+      case 0x1c: // Enter
+        if (layer_is_active(console_layer)) {
+          fifo_enqueue(&console_task->fifo, keycode + 256);
+        }
+        break;
+
+      default: // Print a char
+        if (keycode < 0x54) {
+          char c = keycode_to_char(keycode, shift_pressed, caps_locked);
+          if (layer_is_active(layer_win)) {
+            if (c != 0) {
+              s[0] = c;
+              s[1] = '\0';
+              print_on_layer(layer_win, cursor_x, 28, COLOR_WHITE, COLOR_BLACK, s, 1);
+              cursor_x += 8;
+            }
+          } else if (layer_is_active(console_layer)) {
+            // Add 256 to avoid conflict with curosor event.
+            fifo_enqueue(&console_task->fifo, c + 256);
+          }
+        }
+        break;
       }
 
       // Draw cursor
