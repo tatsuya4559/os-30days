@@ -216,10 +216,11 @@ console_task_main(Layer *layer)
   timer_init(timer, &self->fifo, 1);
   timer_set_timeout(timer, 50);
 
-  print_on_layer(layer, 8, 28, COLOR_BLACK, COLOR_WHITE, ">", 1);
-
   int32_t cursor_x = 16;
-  int32_t cursor_c = COLOR_BLACK;
+  int32_t cursor_y = 28;
+  int32_t cursor_c = COLOR_WHITE;
+
+  print_on_layer(layer, 8, cursor_y, COLOR_BLACK, cursor_c, ">", 1);
 
   int32_t event;
   char s[2];
@@ -251,35 +252,47 @@ console_task_main(Layer *layer)
       if (!layer_is_active(layer)) {
         cursor_c = COLOR_BLACK;
       }
-      boxfill8(layer->buf, layer->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
-      layer_refresh(layer, cursor_x, 28, cursor_x + 8, 44);
+      boxfill8(layer->buf, layer->bxsize, cursor_c, cursor_x, cursor_y, cursor_x + 7, cursor_y + 15);
+      layer_refresh(layer, cursor_x, cursor_y, cursor_x + 8, cursor_y + 16);
     }
 
     // Keyboard input event
     if (256 <= event && event <= 511) {
       char c = event - 256;
-      // Backspace
-      if (c == 0x0e) {
-        if (cursor_x <= 16) {
-          continue;
+      switch (c) {
+      case 0: // Null character
+        break;
+      case 0x0e: // Backspace
+        if (cursor_x > 16) {
+          print_on_layer(layer, cursor_x, cursor_y, COLOR_BLACK, COLOR_WHITE, " ", 1);
+          cursor_x -= 8;
         }
-        print_on_layer(layer, cursor_x, 28, COLOR_BLACK, COLOR_WHITE, " ", 1);
-        cursor_x -= 8;
-      } else if (cursor_x < 240) {
-        if (c != 0) {
+        break;
+      case 0x1c: // Enter
+        if (cursor_y < 28 + 112) {
+          // erase cursor
+          print_on_layer(layer, cursor_x, cursor_y, COLOR_BLACK, COLOR_WHITE, " ", 1);
+          cursor_y += 16;
+          print_on_layer(layer, 8, cursor_y, COLOR_BLACK, COLOR_WHITE, ">", 1);
+          cursor_x = 16;
+        }
+        break;
+      default:
+        if (cursor_x < 240) {
           s[0] = c;
           s[1] = '\0';
-          print_on_layer(layer, cursor_x, 28, COLOR_BLACK, COLOR_WHITE, s, 1);
+          print_on_layer(layer, cursor_x, cursor_y, COLOR_BLACK, COLOR_WHITE, s, 1);
           cursor_x += 8;
         }
+        break;
       }
 
       // Draw cursor
       if (!layer_is_active(layer)) {
         cursor_c = COLOR_BLACK;
       }
-      boxfill8(layer->buf, layer->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
-      layer_refresh(layer, cursor_x, 28, cursor_x + 8, 44);
+      boxfill8(layer->buf, layer->bxsize, cursor_c, cursor_x, cursor_y, cursor_x + 7, 43);
+      layer_refresh(layer, cursor_x, cursor_y, cursor_x + 8, cursor_y + 16);
     }
   }
 }
@@ -534,6 +547,13 @@ hari_main(void)
             cursor_x -= 8;
           }
         } else if (key_to == 1) {
+          fifo_enqueue(&console_task->fifo, keycode + 256);
+        }
+      }
+
+      // Enter
+      if (keycode == 0x1c) {
+        if (key_to == 1) {
           fifo_enqueue(&console_task->fifo, keycode + 256);
         }
       }
