@@ -269,13 +269,26 @@ console_task_main(Layer *layer)
         }
         break;
       case 0x1c: // Enter
+        // erase cursor
+        print_on_layer(layer, cursor_x, cursor_y, COLOR_BLACK, COLOR_WHITE, " ", 1);
         if (cursor_y < 28 + 112) {
-          // erase cursor
-          print_on_layer(layer, cursor_x, cursor_y, COLOR_BLACK, COLOR_WHITE, " ", 1);
           cursor_y += 16;
-          print_on_layer(layer, 8, cursor_y, COLOR_BLACK, COLOR_WHITE, ">", 1);
-          cursor_x = 16;
+        } else {
+          // scroll
+          for (int32_t y = 28; y < 28 + 112; y++) {
+            for (int32_t x = 8; x < 8 + 240; x++) {
+              layer->buf[x + y * layer->bxsize] = layer->buf[x + (y + 16) * layer->bxsize];
+            }
+          }
+          for (int32_t y = 28 + 112; y < 28 + 128; y++) {
+            for (int32_t x = 8; x < 8 + 240; x++) {
+              layer->buf[x + y * layer->bxsize] = COLOR_BLACK;
+            }
+          }
+          layer_refresh(layer, 8, 28, 8 + 240, 28 + 128);
         }
+        print_on_layer(layer, 8, cursor_y, COLOR_BLACK, COLOR_WHITE, ">", 1);
+        cursor_x = 16;
         break;
       default:
         if (cursor_x < 240) {
