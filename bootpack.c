@@ -11,6 +11,8 @@
 #include "timer.h"
 #include "mtask.h"
 
+/* #define DEBUG */
+
 #define MEMMAN_ADDR 0x003c0000
 
 #define CLOSE_BUTTON_HEIGHT 14
@@ -384,11 +386,13 @@ hari_main(void)
   timer_set_timeout(cursor_timer, 50);
 
   char s0[20];
+#ifdef DEBUG
   sprintf(s0, "(%d, %d)", mx, my);
   putfonts8_asc(background_layer_buf, binfo->scrnx, 0, 0, COLOR_WHITE, s0);
 
   sprintf(s0, "memory %dMB   free: %dKB", total_mem_size / (1024 * 1024), memman_total(mem_manager) / 1024);
   putfonts8_asc(background_layer_buf, binfo->scrnx, 0, 32, COLOR_WHITE, s0);
+#endif
 
   layer_refresh(layer_back, 0, 0, binfo->scrnx, 48);
 
@@ -428,8 +432,10 @@ MAIN_LOOP:
 
     if (EVENT_KEYBOARD_INPUT <= event && event < EVENT_MOUSE_INPUT) {
       int32_t keycode = event - EVENT_KEYBOARD_INPUT;
+#ifdef DEBUG
       sprintf(s0, "%x", keycode);
       print_on_layer(layer_back, 0, 16, COLOR_DARK_CYAN, COLOR_WHITE, s0, 2);
+#endif
 
       switch (keycode) {
       /* Lock keys */
@@ -526,6 +532,7 @@ MAIN_LOOP:
     } else if (EVENT_MOUSE_INPUT <= event) {
       int32_t keycode = event - EVENT_MOUSE_INPUT;
       if (mouse_decode(&mouse_decoder, keycode) != 0) {
+#ifdef DEBUG
         sprintf(s0, "[lcr %d %d]", mouse_decoder.x, mouse_decoder.y);
         if ((mouse_decoder.btn & 0x01) != 0) {
           s0[1] = 'L';
@@ -537,6 +544,7 @@ MAIN_LOOP:
           s0[2] = 'C';
         }
         print_on_layer(layer_back, 32, 16, COLOR_DARK_CYAN, COLOR_WHITE, s0, 15);
+#endif
 
         // move mouse cursor
         mx += mouse_decoder.x;
@@ -553,8 +561,10 @@ MAIN_LOOP:
         if (my > binfo->scrny - 1) {
           my = binfo->scrny - 1;
         }
+#ifdef DEBUG
         sprintf(s, "(%d, %d)", mx, my);
         print_on_layer(layer_back, 0, 0, COLOR_DARK_CYAN, COLOR_WHITE, s, 10);
+#endif
         layer_slide(layer_mouse, mx, my);
 
         if ((mouse_decoder.btn & 0x01) != 0) {
