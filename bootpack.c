@@ -168,41 +168,6 @@ keycode_to_char(int32_t keycode, bool_t with_shift, bool_t with_capslock)
   return c;
 }
 
-void
-task_b_main(Layer *layer_back)
-{
-  FIFO fifo;
-  int32_t fifo_buf[FIFO_BUF_SIZE];
-  fifo_init(&fifo, FIFO_BUF_SIZE, fifo_buf, NULL);
-
-  Timer *print_timer = timer_alloc();
-  timer_init(print_timer, &fifo, EVENT_PRINT);
-  timer_set_timeout(print_timer, 100);
-
-  int32_t count = 0;
-  int32_t count0 = 0;
-  char s[11];
-  for (;;) {
-    count++;
-
-    _io_cli();
-    if (fifo.len == 0) {
-      _io_sti();
-      continue;
-    }
-    int32_t event = fifo_dequeue(&fifo);
-    _io_sti();
-    switch (event) {
-    case EVENT_PRINT:
-      sprintf(s, "%d", count - count0);
-      print_on_layer(layer_back, 24, 28, COLOR_LIGHT_GRAY, COLOR_WHITE, s, 10);
-      count0 = count;
-      timer_set_timeout(print_timer, 100);
-      break;
-    }
-  }
-}
-
 static
 void
 console_task_main(Layer *layer)
@@ -351,7 +316,6 @@ hari_main(void)
   Layer *layer_back;
   Layer *layer_mouse;
   Layer *layer_win;
-  Layer *layer_win_b[3];
   uint8_t *background_layer_buf;
   uint8_t mouse_layer_buf[256];
   uint8_t *window_layer_buf;
@@ -372,36 +336,6 @@ hari_main(void)
   make_window8(window_layer_buf, 160, 52, "window", TRUE);
   make_textbox8(layer_win, 8, 28, 144, 16, COLOR_WHITE);
 
-  // task B
-  Task *task_b[3];
-  uint8_t *window_layer_buf_b;
-  for (int32_t i = 0; i < 3; i++) {
-    layer_win_b[i] = layer_alloc(layerctl);
-    window_layer_buf_b = (uint8_t *) memman_alloc_4k(mem_manager, 144 * 52);
-    layer_setbuf(layer_win_b[i], window_layer_buf_b, 144, 52, -1);
-    char title[10];
-    sprintf(title, "task_b%d", i);
-    make_window8(window_layer_buf_b, 144, 52, title, FALSE);
-    task_b[i] = task_alloc();
-    // Substract 8 bytes from the end of the allocated memory to store an int32_t argument.
-    // |---------------------|<- int32_t(4 byte) ->|
-    // ^                     ^                     ^
-    // ESP                   ESP+4                 End of the segment
-    int32_t task_b_esp = memman_alloc_4k(mem_manager, 64 * 1024) + 64 * 1024 - 8;
-    task_b[i]->tss.eip = (int32_t) &task_b_main;
-    task_b[i]->tss.esp = task_b_esp;
-    task_b[i]->tss.es = 1 * 8;
-    task_b[i]->tss.cs = 2 * 8;
-    task_b[i]->tss.ss = 1 * 8;
-    task_b[i]->tss.ds = 1 * 8;
-    task_b[i]->tss.fs = 1 * 8;
-    task_b[i]->tss.gs = 1 * 8;
-    // Arg1 should be at the address of [Stack Pointer + 4 Byte]
-    *((int32_t *) (task_b_esp + 4)) = (int32_t) layer_win_b[i];
-    // FIXME: when run task_b on level=2, console_task fails..
-    task_run(task_b[i], 3, i + 1);
-  }
-
   // console task
   Layer *console_layer = layer_alloc(layerctl);
   uint8_t *console_layer_buf = (uint8_t *) memman_alloc_4k(mem_manager, 256 * 165);
@@ -409,6 +343,10 @@ hari_main(void)
   make_window8(console_layer_buf, 256, 165, "console", FALSE);
   make_textbox8(console_layer, 8, 28, 240, 128, COLOR_BLACK);
   Task *console_task = task_alloc();
+  // Substract 8 bytes from the end of the allocated memory to store an int32_t argument.
+  // |---------------------|<- int32_t(4 byte) ->|
+  // ^                     ^                     ^
+  // ESP                   ESP+4                 End of the segment
   console_task->tss.esp = memman_alloc_4k(mem_manager, 64 * 1024) + 64 * 1024 - 8;
   console_task->tss.eip = (int32_t) &console_task_main;
   console_task->tss.es = 1 * 8;
@@ -417,6 +355,7 @@ hari_main(void)
   console_task->tss.ds = 1 * 8;
   console_task->tss.fs = 1 * 8;
   console_task->tss.gs = 1 * 8;
+  // Arg1 should be at the address of [Stack Pointer + 4 Byte]
   *((int32_t *) (console_task->tss.esp + 4)) = (int32_t) console_layer;
   task_run(console_task, 2, 2); // level 2, priority 2
 
@@ -432,15 +371,9 @@ hari_main(void)
   int32_t my = (binfo->scrny - 28 - 16) / 2;
   layer_slide(layer_mouse, mx, my);
   layer_slide(layer_win, 8, 56);
-  layer_slide(layer_win_b[0], 168, 56);
-  layer_slide(layer_win_b[1], 8, 116);
-  layer_slide(layer_win_b[2], 168, 116);
   layer_slide(console_layer, 32, 200);
 
   layer_updown(layer_back, 0);
-  layer_updown(layer_win_b[0], 1);
-  layer_updown(layer_win_b[1], 2);
-  layer_updown(layer_win_b[2], 3);
   layer_updown(console_layer, 4);
   layer_updown(layer_win, 5);
   layer_updown(layer_mouse, 1000);
