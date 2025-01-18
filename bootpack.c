@@ -33,6 +33,37 @@ typedef struct {
   uint32_t size;
 } FileInfo;
 
+/**
+ * Convert finfo to normalized filename.
+ *
+ * @param finfo file information
+ * @param buf buffer to store the normalized filename.
+ *        The buffer must be at least 13 bytes long.
+ */
+static
+void
+file_normalized_name(const FileInfo *finfo, char *buf)
+{
+  int32_t idx = 0;
+  for (int32_t i = 0; i < 8; i++) {
+    if (finfo->name[i] == ' ') {
+      break;
+    }
+    buf[idx++] = finfo->name[i];
+  }
+  buf[idx++] = '.';
+  for (int32_t i = 0; i < 3; i++) {
+    if (finfo->ext[i] == ' ') {
+      break;
+    }
+    buf[idx++] = finfo->ext[i];
+  }
+  buf[idx] = '\0';
+  if (str_equal(buf, ".")) {
+    buf[0] = '\0';
+  }
+}
+
 enum {
   EVENT_CURSOR_OFF,
   EVENT_CURSOR_ON,
@@ -219,14 +250,12 @@ console_task_main(Layer *layer, uint32_t total_mem_size)
               continue;
             }
             if (finfo[i].type == 0x00 || finfo[i].type == 0x20) {
-              char filename[9];
-              char ext[4];
-              str_ncpy(filename, finfo[i].name, 8);
-              str_ncpy(ext, finfo[i].ext, 3);
+              char filename[13];
+              file_normalized_name(&finfo[i], filename);
               if (str_equal(filename, "")) {
                 continue;
               }
-              sprintf(s, "%s.%s %d", filename, ext, finfo[i].size);
+              sprintf(s, "%s %d", filename, finfo[i].size);
               print_on_layer(layer, 8, cursor_y, COLOR_BLACK, COLOR_WHITE, s);
               cursor_y = console_newline(cursor_y, layer);
             }
