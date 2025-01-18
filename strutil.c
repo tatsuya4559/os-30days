@@ -21,3 +21,14 @@ str_equal(const char *s1, const char *s2)
   }
   return TRUE;
 }
+
+int32_t
+str_ncpy(char *dest, const char *src, int32_t n)
+{
+  int32_t i;
+  for (i = 0; i < n && src[i] != '\0'; i++) {
+    dest[i] = src[i];
+  }
+  dest[i] = '\0';
+  return i;
+}

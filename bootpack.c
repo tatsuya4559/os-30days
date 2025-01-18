@@ -15,6 +15,8 @@
 /* #define DEBUG */
 #define MEMMAN_ADDR 0x003c0000
 #define ADR_BOOTINFO 0x00000ff0
+#define ADR_DISKIMG  0x00100000
+#define MAX_FILES 224
 #define KEYCMD_LED 0xed
 #define FIFO_BUF_SIZE 128
 
@@ -23,6 +25,13 @@ typedef struct {
   short scrnx, scrny;
   uint8_t *vram;
 } BootInfo;
+
+typedef struct {
+  uint8_t name[8], ext[3], type;
+  uint8_t reserve[10];
+  uint16_t time, date, clustno;
+  uint32_t size;
+} FileInfo;
 
 enum {
   EVENT_CURSOR_OFF,
@@ -113,6 +122,7 @@ console_task_main(Layer *layer, uint32_t total_mem_size)
 {
   Task *self = task_now();
   MemoryManager *memman = (MemoryManager *) MEMMAN_ADDR;
+  FileInfo *finfo = (FileInfo *) (ADR_DISKIMG + 0x002600);
 
   int32_t fifo_buf[FIFO_BUF_SIZE];
   fifo_init(&self->fifo, FIFO_BUF_SIZE, fifo_buf, self);
@@ -198,6 +208,29 @@ console_task_main(Layer *layer, uint32_t total_mem_size)
           }
           layer_refresh(layer, 8, 28, 8 + 240, 28 + 128);
           cursor_y = 28;
+        } else if (str_equal(cmdline, "dir")) {
+          for (int32_t i = 0; i < MAX_FILES; i++) {
+            if (finfo[i].name == 0x00) {
+              // If the first byte of the name is 0x00, there are no more files.
+              break;
+            }
+            if (finfo[i].name == 0xe5) {
+              // If the first byte of the name is 0xe5, the file is deleted.
+              continue;
+            }
+            if (finfo[i].type == 0x00 || finfo[i].type == 0x20) {
+              char filename[9];
+              char ext[4];
+              str_ncpy(filename, finfo[i].name, 8);
+              str_ncpy(ext, finfo[i].ext, 3);
+              if (str_equal(filename, "")) {
+                continue;
+              }
+              sprintf(s, "%s.%s %d", filename, ext, finfo[i].size);
+              print_on_layer(layer, 8, cursor_y, COLOR_BLACK, COLOR_WHITE, s);
+              cursor_y = console_newline(cursor_y, layer);
+            }
+          }
         } else if (!str_equal(cmdline, "")) { // not a command but a string
           print_on_layer(layer, 8, cursor_y, COLOR_BLACK, COLOR_WHITE, "Bad command.");
           cursor_y = console_newline(cursor_y, layer);

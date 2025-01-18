@@ -1,8 +1,9 @@
-#include "iolib.h"
 #include "types.h"
+#include "strutil.h"
+#include "iolib.h"
 
 static
-int
+int32_t
 dec2asc(char *str, int32_t dec)
 {
   int32_t len = 0, len_buf; //桁数
@@ -21,7 +22,7 @@ dec2asc(char *str, int32_t dec)
 
 //16進数からASCIIコードに変換
 static
-int
+int32_t
 hex2asc(char *str, int32_t dec)
 { //10で割れた回数（つまり桁数）をlenに、各桁をbufに格納
   int32_t len = 0, len_buf; //桁数
@@ -37,6 +38,18 @@ hex2asc(char *str, int32_t dec)
     *(str++) = (buf[len]<10)?(buf[len] + 0x30):(buf[len] - 9 + 0x60);
   }
   return len_buf;
+}
+
+static
+int32_t
+str_append(char *dest, const char *src)
+{
+  int32_t len = 0;
+  for (const char *p = src; *p; p++) {
+    *(dest++) = *p;
+    len++;
+  }
+  return len;
 }
 
 void
@@ -55,6 +68,9 @@ sprintf(char *str, char *fmt, ...)
           break;
         case 'x':
           len = hex2asc(str, va_arg(list, int));
+          break;
+        case 's':
+          len = str_append(str, va_arg(list, char *));
           break;
       }
       str += len; fmt++;

@@ -34,6 +34,9 @@ ipl.bin: ipl.asm
 haribote.img: ipl.bin haribote.sys
 	mformat -f 1440 -C -B ipl.bin -i $@
 	mcopy -i $@ haribote.sys ::
+	# Not necessary, just for list files in dir command
+	mcopy -i $@ nasmfunc.asm ::
+	mcopy -i $@ int.c ::
 
 .PHONY: build
 build: ## Build the OS
