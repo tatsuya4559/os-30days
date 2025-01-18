@@ -6,7 +6,7 @@ CC := gcc
 # -fno-pic Position Independent Code（PIC）を生成しないように指示します。PICは共有ライブラリの再配置をサポートするために使用されますが、このオプションにより通常の（位置依存の）コードが生成されます。
 # -nostdlib  標準ライブラリをリンクしないように指示します。カーネルやブートローダなどの特殊なプログラムを作成する際に使用されます。このオプションを使うと、標準ライブラリ関数（例：printfなど）が利用できなくなります。
 CFLAGS := -march=i486 -m32 -fno-pic -nostdlib
-C_SRC := iolib.c graphic.c dsctbl.c int.c fifo.c keyboard.c mouse.c memory.c layer.c timer.c mtask.c
+C_SRC := iolib.c graphic.c dsctbl.c int.c fifo.c keyboard.c mouse.c memory.c layer.c timer.c mtask.c strutil.c
 C_OBJ := $(patsubst %.c,%.o,$(C_SRC))
 
 asmhead.bin: asmhead.asm

@@ -10,6 +10,7 @@
 #include "layer.h"
 #include "timer.h"
 #include "mtask.h"
+#include "strutil.h"
 
 /* #define DEBUG */
 
@@ -171,10 +172,34 @@ keycode_to_char(int32_t keycode, bool_t with_shift, bool_t with_capslock)
 }
 
 static
+int32_t
+console_newline(int32_t cursor_y, Layer *layer)
+{
+  if (cursor_y < 28 + 112) {
+    cursor_y += 16;
+  } else {
+    // scroll
+    for (int32_t y = 28; y < 28 + 112; y++) {
+      for (int32_t x = 8; x < 8 + 240; x++) {
+        layer->buf[x + y * layer->bxsize] = layer->buf[x + (y + 16) * layer->bxsize];
+      }
+    }
+    for (int32_t y = 28 + 112; y < 28 + 128; y++) {
+      for (int32_t x = 8; x < 8 + 240; x++) {
+        layer->buf[x + y * layer->bxsize] = COLOR_BLACK;
+      }
+    }
+    layer_refresh(layer, 8, 28, 8 + 240, 28 + 128);
+  }
+  return cursor_y;
+}
+
+static
 void
-console_task_main(Layer *layer)
+console_task_main(Layer *layer, uint32_t total_mem_size)
 {
   Task *self = task_now();
+  MemoryManager *memman = (MemoryManager *) MEMMAN_ADDR;
 
   int32_t fifo_buf[FIFO_BUF_SIZE];
   fifo_init(&self->fifo, FIFO_BUF_SIZE, fifo_buf, self);
@@ -183,6 +208,10 @@ console_task_main(Layer *layer)
   timer_init(timer, &self->fifo, 1);
   timer_set_timeout(timer, 50);
 
+  const int32_t cmdline_len = 30;
+  char cmdline[cmdline_len];
+  char s[cmdline_len]; // printing buffer
+
   int32_t cursor_x = 16;
   int32_t cursor_y = 28;
   int32_t cursor_c = COLOR_WHITE;
@@ -190,7 +219,6 @@ console_task_main(Layer *layer)
   print_on_layer(layer, 8, cursor_y, COLOR_BLACK, cursor_c, ">", 1);
 
   int32_t event;
-  char s[2];
   for (;;) {
     _io_cli();
 
@@ -238,22 +266,24 @@ console_task_main(Layer *layer)
       case 0x1c: // Enter
         // erase cursor
         print_on_layer(layer, cursor_x, cursor_y, COLOR_BLACK, COLOR_WHITE, " ", 1);
-        if (cursor_y < 28 + 112) {
-          cursor_y += 16;
-        } else {
-          // scroll
-          for (int32_t y = 28; y < 28 + 112; y++) {
-            for (int32_t x = 8; x < 8 + 240; x++) {
-              layer->buf[x + y * layer->bxsize] = layer->buf[x + (y + 16) * layer->bxsize];
-            }
-          }
-          for (int32_t y = 28 + 112; y < 28 + 128; y++) {
-            for (int32_t x = 8; x < 8 + 240; x++) {
-              layer->buf[x + y * layer->bxsize] = COLOR_BLACK;
-            }
-          }
-          layer_refresh(layer, 8, 28, 8 + 240, 28 + 128);
+        cmdline[cursor_x / 8 - 2] = '\0';
+        cursor_y = console_newline(cursor_y, layer);
+
+        if (str_equal(cmdline, "mem")) { // mem command
+          sprintf(s, "total %dMB", total_mem_size / (1024 * 1024));
+          print_on_layer(layer, 8, cursor_y, COLOR_BLACK, COLOR_WHITE, s, 30);
+          cursor_y = console_newline(cursor_y, layer);
+          sprintf(s, "free %dKB", memman_total(memman) / 1024);
+          print_on_layer(layer, 8, cursor_y, COLOR_BLACK, COLOR_WHITE, s, 30);
+          cursor_y = console_newline(cursor_y, layer);
+          cursor_y = console_newline(cursor_y, layer);
+        } else if (!str_equal(cmdline, "")) { // not a command but a string
+          print_on_layer(layer, 8, cursor_y, COLOR_BLACK, COLOR_WHITE, "Bad command.", 12);
+          cursor_y = console_newline(cursor_y, layer);
+          cursor_y = console_newline(cursor_y, layer);
         }
+
+        // Draw a prompt
         print_on_layer(layer, 8, cursor_y, COLOR_BLACK, COLOR_WHITE, ">", 1);
         cursor_x = 16;
         break;
@@ -261,6 +291,7 @@ console_task_main(Layer *layer)
         if (cursor_x < 240) {
           s[0] = c;
           s[1] = '\0';
+          cmdline[cursor_x / 8 - 2] = c;
           print_on_layer(layer, cursor_x, cursor_y, COLOR_BLACK, COLOR_WHITE, s, 1);
           cursor_x += 8;
         }
@@ -349,7 +380,7 @@ hari_main(void)
   // |---------------------|<- int32_t(4 byte) ->|
   // ^                     ^                     ^
   // ESP                   ESP+4                 End of the segment
-  console_task->tss.esp = memman_alloc_4k(memman, 64 * 1024) + 64 * 1024 - 8;
+  console_task->tss.esp = memman_alloc_4k(memman, 64 * 1024) + 64 * 1024 - 12;
   console_task->tss.eip = (int32_t) &console_task_main;
   console_task->tss.es = 1 * 8;
   console_task->tss.cs = 2 * 8;
@@ -359,6 +390,7 @@ hari_main(void)
   console_task->tss.gs = 1 * 8;
   // Arg1 should be at the address of [Stack Pointer + 4 Byte]
   *((int32_t *) (console_task->tss.esp + 4)) = (int32_t) console_layer;
+  *((uint32_t *) (console_task->tss.esp + 8)) = total_mem_size;
   task_run(console_task, 2, 2); // level 2, priority 2
 
   // Draw cursor
