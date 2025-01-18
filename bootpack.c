@@ -113,7 +113,6 @@ make_textbox8(Layer *layer, int32_t x0, int32_t y0, int32_t width, int32_t heigh
 enum {
   EVENT_CURSOR_OFF,
   EVENT_CURSOR_ON,
-  EVENT_PRINT,
   EVENT_KEYBOARD_INPUT = 256,
   EVENT_MOUSE_INPUT = 512,
 };
