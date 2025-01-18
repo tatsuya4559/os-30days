@@ -216,7 +216,7 @@ console_task_main(Layer *layer, uint32_t total_mem_size)
   int32_t cursor_y = 28;
   int32_t cursor_c = COLOR_WHITE;
 
-  print_on_layer(layer, 8, cursor_y, COLOR_BLACK, cursor_c, ">", 1);
+  print_on_layer(layer, 8, cursor_y, COLOR_BLACK, cursor_c, ">");
 
   int32_t event;
   for (;;) {
@@ -259,32 +259,32 @@ console_task_main(Layer *layer, uint32_t total_mem_size)
         break;
       case 0x0e: // Backspace
         if (cursor_x > 16) {
-          print_on_layer(layer, cursor_x, cursor_y, COLOR_BLACK, COLOR_WHITE, " ", 1);
+          print_on_layer(layer, cursor_x, cursor_y, COLOR_BLACK, COLOR_WHITE, " ");
           cursor_x -= 8;
         }
         break;
       case 0x1c: // Enter
         // erase cursor
-        print_on_layer(layer, cursor_x, cursor_y, COLOR_BLACK, COLOR_WHITE, " ", 1);
+        print_on_layer(layer, cursor_x, cursor_y, COLOR_BLACK, COLOR_WHITE, " ");
         cmdline[cursor_x / 8 - 2] = '\0';
         cursor_y = console_newline(cursor_y, layer);
 
         if (str_equal(cmdline, "mem")) { // mem command
           sprintf(s, "total %dMB", total_mem_size / (1024 * 1024));
-          print_on_layer(layer, 8, cursor_y, COLOR_BLACK, COLOR_WHITE, s, 30);
+          print_on_layer(layer, 8, cursor_y, COLOR_BLACK, COLOR_WHITE, s);
           cursor_y = console_newline(cursor_y, layer);
           sprintf(s, "free %dKB", memman_total(memman) / 1024);
-          print_on_layer(layer, 8, cursor_y, COLOR_BLACK, COLOR_WHITE, s, 30);
+          print_on_layer(layer, 8, cursor_y, COLOR_BLACK, COLOR_WHITE, s);
           cursor_y = console_newline(cursor_y, layer);
           cursor_y = console_newline(cursor_y, layer);
         } else if (!str_equal(cmdline, "")) { // not a command but a string
-          print_on_layer(layer, 8, cursor_y, COLOR_BLACK, COLOR_WHITE, "Bad command.", 12);
+          print_on_layer(layer, 8, cursor_y, COLOR_BLACK, COLOR_WHITE, "Bad command.");
           cursor_y = console_newline(cursor_y, layer);
           cursor_y = console_newline(cursor_y, layer);
         }
 
         // Draw a prompt
-        print_on_layer(layer, 8, cursor_y, COLOR_BLACK, COLOR_WHITE, ">", 1);
+        print_on_layer(layer, 8, cursor_y, COLOR_BLACK, COLOR_WHITE, ">");
         cursor_x = 16;
         break;
       default:
@@ -292,7 +292,7 @@ console_task_main(Layer *layer, uint32_t total_mem_size)
           s[0] = c;
           s[1] = '\0';
           cmdline[cursor_x / 8 - 2] = c;
-          print_on_layer(layer, cursor_x, cursor_y, COLOR_BLACK, COLOR_WHITE, s, 1);
+          print_on_layer(layer, cursor_x, cursor_y, COLOR_BLACK, COLOR_WHITE, s);
           cursor_x += 8;
         }
         break;
@@ -466,7 +466,7 @@ MAIN_LOOP:
       int32_t keycode = event - EVENT_KEYBOARD_INPUT;
 #ifdef DEBUG
       sprintf(s0, "%x", keycode);
-      print_on_layer(layer_back, 0, 16, COLOR_DARK_CYAN, COLOR_WHITE, s0, 2);
+      print_on_layer(layer_back, 0, 16, COLOR_DARK_CYAN, COLOR_WHITE, s0);
 #endif
 
       switch (keycode) {
@@ -523,7 +523,7 @@ MAIN_LOOP:
       case 0x0e: // Backspace
         if (layer_is_active(layer_win)) {
           if (cursor_x > 8) {
-            print_on_layer(layer_win, cursor_x, 28, COLOR_WHITE, COLOR_BLACK, " ", 1);
+            print_on_layer(layer_win, cursor_x, 28, COLOR_WHITE, COLOR_BLACK, " ");
             cursor_x -= 8;
           }
         } else if (layer_is_active(console_layer)) {
@@ -543,7 +543,7 @@ MAIN_LOOP:
             if (c != 0) {
               s[0] = c;
               s[1] = '\0';
-              print_on_layer(layer_win, cursor_x, 28, COLOR_WHITE, COLOR_BLACK, s, 1);
+              print_on_layer(layer_win, cursor_x, 28, COLOR_WHITE, COLOR_BLACK, s);
               cursor_x += 8;
             }
           } else if (layer_is_active(console_layer)) {
@@ -575,7 +575,7 @@ MAIN_LOOP:
         if ((mouse_decoder.btn & 0x04) != 0) {
           s0[2] = 'C';
         }
-        print_on_layer(layer_back, 32, 16, COLOR_DARK_CYAN, COLOR_WHITE, s0, 15);
+        print_on_layer(layer_back, 32, 16, COLOR_DARK_CYAN, COLOR_WHITE, s0);
 #endif
 
         // move mouse cursor
@@ -595,7 +595,7 @@ MAIN_LOOP:
         }
 #ifdef DEBUG
         sprintf(s, "(%d, %d)", mx, my);
-        print_on_layer(layer_back, 0, 0, COLOR_DARK_CYAN, COLOR_WHITE, s, 10);
+        print_on_layer(layer_back, 0, 0, COLOR_DARK_CYAN, COLOR_WHITE, s);
 #endif
         layer_slide(layer_mouse, mx, my);
 
