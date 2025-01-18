@@ -110,6 +110,7 @@ putfont8(uint8_t *vram, int32_t xsize, int32_t x, int32_t y, uint8_t c, uint8_t 
   }
 }
 
+static
 void
 putfonts8_asc(uint8_t *vram, int32_t xsize, int32_t x, int32_t y, uint8_t c, char *string)
 {

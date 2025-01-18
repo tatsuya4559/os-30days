@@ -341,10 +341,10 @@ hari_main(void)
   char s0[20];
 #ifdef DEBUG
   sprintf(s0, "(%d, %d)", mx, my);
-  putfonts8_asc(background_layer_buf, binfo->scrnx, 0, 0, COLOR_WHITE, s0);
+  print_on_layer(layer_back, 0, 0, COLOR_DARK_CYAN, COLOR_WHITE, s0);
 
   sprintf(s0, "memory %dMB   free: %dKB", total_mem_size / (1024 * 1024), memman_total(memman) / 1024);
-  putfonts8_asc(background_layer_buf, binfo->scrnx, 0, 32, COLOR_WHITE, s0);
+  print_on_layer(layer_back, 0, 32, COLOR_DARK_CYAN, COLOR_WHITE, s0);
 #endif
 
   layer_refresh(layer_back, 0, 0, binfo->scrnx, 48);
