@@ -120,18 +120,6 @@ putfonts8_asc(uint8_t *vram, int32_t xsize, int32_t x, int32_t y, uint8_t c, cha
 }
 
 void
-putblock8_8(uint8_t *vram, int32_t vxsize, int32_t pxsize,
-            int32_t pysize, int32_t px0, int32_t py0, uint8_t *buf, int32_t bxsize)
-{
-  int32_t x, y;
-  for (y=0; y<pysize; y++) {
-    for (x=0; x<pxsize; x++) {
-      vram[(py0 + y) * vxsize + (px0 + x)] = buf[y * bxsize + x];
-    }
-  }
-}
-
-void
 boxfill8(uint8_t *vram, int32_t xsize, uint8_t c, int32_t x0, int32_t y0, int32_t x1, int32_t y1)
 {
   int32_t x, y;
@@ -171,3 +159,83 @@ print_on_layer(Layer *layer, int32_t x, int32_t y, uint8_t bg_color, uint8_t fg_
   putfonts8_asc(layer->buf, layer->bxsize, x, y, fg_color, s);
   layer_refresh(layer, x, y, x + s_len * 8, y + FONT_HEIGHT);
 }
+
+#define CLOSE_BUTTON_HEIGHT 14
+#define CLOSE_BUTTON_WIDTH 16
+
+void
+make_window_title(uint8_t *buf, int32_t xsize, char *title, bool_t active)
+{
+  static char closebtn[CLOSE_BUTTON_HEIGHT][CLOSE_BUTTON_WIDTH] = {
+    "OOOOOOOOOOOOOOO@",
+    "OQQQQQQQQQQQQQ$@",
+    "OQQQQQQQQQQQQQ$@",
+    "OQQQ@@QQQQ@@QQ$@",
+    "OQQQQ@@QQ@@QQQ$@",
+    "OQQQQQ@@@@QQQQ$@",
+    "OQQQQQQ@@QQQQQ$@",
+    "OQQQQQ@@@@QQQQ$@",
+    "OQQQQ@@QQ@@QQQ$@",
+    "OQQQ@@QQQQ@@QQ$@",
+    "OQQQQQQQQQQQQQ$@",
+    "OQQQQQQQQQQQQQ$@",
+    "O$$$$$$$$$$$$$$@",
+    "@@@@@@@@@@@@@@@@",
+  };
+  uint8_t foreground_color = active ? COLOR_WHITE : COLOR_LIGHT_GRAY;
+  uint8_t background_color = active ? COLOR_DARK_BLUE : COLOR_DARK_GRAY;
+  boxfill8(buf,  xsize,  background_color,   3,        3,        xsize-4,  20);
+  putfonts8_asc(buf, xsize, 24, 4, foreground_color, title);
+  for (int32_t y = 0; y < CLOSE_BUTTON_HEIGHT; y++) {
+    for (int32_t x = 0; x < CLOSE_BUTTON_WIDTH; x++) {
+      char c = closebtn[y][x];
+      switch (c) {
+        case '@':
+          c = COLOR_BLACK;
+          break;
+        case '$':
+          c = COLOR_DARK_GRAY;
+          break;
+        case 'Q':
+          c = COLOR_LIGHT_GRAY;
+          break;
+        default:
+          c = COLOR_WHITE;
+          break;
+      }
+      buf[(5+y)*xsize + (xsize-21+x)] = c;
+    }
+  }
+}
+
+void
+make_window8(uint8_t *buf, int32_t xsize, int32_t ysize, char *title, bool_t active)
+{
+  boxfill8(buf,  xsize,  COLOR_DARK_GRAY,   0,        0,        xsize-1,  0);
+  boxfill8(buf,  xsize,  COLOR_WHITE,       1,        1,        xsize-2,  1);
+  boxfill8(buf,  xsize,  COLOR_DARK_GRAY,   0,        0,        0,        ysize-1);
+  boxfill8(buf,  xsize,  COLOR_WHITE,       1,        1,        1,        ysize-2);
+  boxfill8(buf,  xsize,  COLOR_WHITE,       xsize-2,  1,        xsize-2,  ysize-2);
+  boxfill8(buf,  xsize,  COLOR_DARK_GRAY,   xsize-1,  0,        xsize-1,  ysize-1);
+  boxfill8(buf,  xsize,  COLOR_LIGHT_GRAY,  2,        2,        xsize-3,  ysize-3);
+  boxfill8(buf,  xsize,  COLOR_DARK_GRAY,   0,        ysize-1,  xsize-1,  ysize-1);
+  boxfill8(buf,  xsize,  COLOR_DARK_GRAY,   1,        ysize-2,  xsize-2,  ysize-2);
+  make_window_title(buf, xsize, title, active);
+}
+
+void
+make_textbox8(Layer *layer, int32_t x0, int32_t y0, int32_t width, int32_t height, int32_t color)
+{
+  int32_t x1 = x0 + width;
+  int32_t y1 = y0 + height;
+  boxfill8(layer->buf, layer->bxsize, COLOR_DARK_GRAY, x0 - 2, y0 - 3, x1 + 1, y0 - 3);
+  boxfill8(layer->buf, layer->bxsize, COLOR_DARK_GRAY, x0 - 3, y0 - 3, x0 - 3, y1 + 1);
+  boxfill8(layer->buf, layer->bxsize, COLOR_WHITE, x0 - 3, y1 + 2, x1 + 1, y1 + 2);
+  boxfill8(layer->buf, layer->bxsize, COLOR_WHITE, x1 + 2, y0 - 3, x1 + 2, y1 + 2);
+  boxfill8(layer->buf, layer->bxsize, COLOR_BLACK, x0 - 1, y0 - 2, x1, y0 - 2);
+  boxfill8(layer->buf, layer->bxsize, COLOR_BLACK, x0 - 2, y0 - 2, x0 - 2, y1);
+  boxfill8(layer->buf, layer->bxsize, COLOR_LIGHT_GRAY, x0 - 2, y1 + 1, x1, y1 + 1);
+  boxfill8(layer->buf, layer->bxsize, COLOR_LIGHT_GRAY, x1 + 1, y0 - 2, x1 + 1, y1);
+  boxfill8(layer->buf, layer->bxsize, color, x0 - 1, y0 - 1, x1, y1);
+}
+

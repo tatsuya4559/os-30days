@@ -24,7 +24,9 @@
 void init_palette(void);
 void putfonts8_asc(uint8_t *vram, int32_t xsize, int32_t x, int32_t y, uint8_t c, char *string);
 void init_mouse_cursor8(uint8_t *mouse, uint8_t background_color);
-void putblock8_8(uint8_t *vram, int32_t vxsize, int32_t pxsize, int32_t pysize, int32_t px0, int32_t py0, uint8_t *buf, int32_t bxsize);
 void boxfill8(uint8_t *vram, int32_t xsize, uint8_t c, int32_t x0, int32_t y0, int32_t x1, int32_t y1);
 void init_screen8(uint8_t *vram, int32_t x, int32_t y);
 void print_on_layer(Layer *layer, int32_t x, int32_t y, uint8_t color, uint8_t b, char *s);
+void make_window_title(uint8_t *buf, int32_t xsize, char *title, bool_t active);
+void make_window8(uint8_t *buf, int32_t xsize, int32_t ysize, char *title, bool_t active);
+void make_textbox8(Layer *layer, int32_t x0, int32_t y0, int32_t width, int32_t height, int32_t color);
