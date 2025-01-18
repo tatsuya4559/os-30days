@@ -277,6 +277,14 @@ console_task_main(Layer *layer, uint32_t total_mem_size)
           print_on_layer(layer, 8, cursor_y, COLOR_BLACK, COLOR_WHITE, s);
           cursor_y = console_newline(cursor_y, layer);
           cursor_y = console_newline(cursor_y, layer);
+        } else if (str_equal(cmdline, "cls")) { // clear screen
+          for (int32_t y = 28; y < 28 + 128; y++) {
+            for (int32_t x = 8; x < 8 + 240; x++) {
+              layer->buf[x + y * layer->bxsize] = COLOR_BLACK;
+            }
+          }
+          layer_refresh(layer, 8, 28, 8 + 240, 28 + 128);
+          cursor_y = 28;
         } else if (!str_equal(cmdline, "")) { // not a command but a string
           print_on_layer(layer, 8, cursor_y, COLOR_BLACK, COLOR_WHITE, "Bad command.");
           cursor_y = console_newline(cursor_y, layer);
