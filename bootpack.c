@@ -290,11 +290,11 @@ hari_main(void)
   init_pit();
 
   /* Initialize memory manager */
-  MemoryManager *mem_manager = (MemoryManager *) MEMMAN_ADDR;
+  MemoryManager *memman = (MemoryManager *) MEMMAN_ADDR;
   uint32_t total_mem_size = memtest(0x00400000, 0xbfffffff);
-  memman_init(mem_manager);
-  memman_free(mem_manager, 0x00001000, 0x0009e000);
-  memman_free(mem_manager, 0x00400000, total_mem_size - 0x00400000);
+  memman_init(memman);
+  memman_free(memman, 0x00001000, 0x0009e000);
+  memman_free(memman, 0x00400000, total_mem_size - 0x00400000);
 
   /* Initialize Bus */
   FIFO fifo;
@@ -310,7 +310,7 @@ hari_main(void)
   enable_mouse(&fifo, EVENT_MOUSE_INPUT, &mouse_decoder);
 
   /* Initialize Multi-task Controller */
-  Task *task_a = task_init(mem_manager);
+  Task *task_a = task_init(memman);
   fifo.metadata = task_a;
   task_run(task_a, 1, 0);
 
@@ -323,13 +323,13 @@ hari_main(void)
   uint8_t *window_layer_buf;
 
   init_palette();
-  layerctl = layerctl_init(mem_manager, binfo->vram, binfo->scrnx, binfo->scrny);
+  layerctl = layerctl_init(memman, binfo->vram, binfo->scrnx, binfo->scrny);
   layer_back = layer_alloc(layerctl);
   layer_mouse = layer_alloc(layerctl);
   layer_win = layer_alloc(layerctl);
   layer_activate(layer_win);
-  background_layer_buf = (uint8_t *) memman_alloc_4k(mem_manager, binfo->scrnx * binfo->scrny);
-  window_layer_buf = (uint8_t *) memman_alloc_4k(mem_manager, 160 * 52);
+  background_layer_buf = (uint8_t *) memman_alloc_4k(memman, binfo->scrnx * binfo->scrny);
+  window_layer_buf = (uint8_t *) memman_alloc_4k(memman, 160 * 52);
   layer_setbuf(layer_back, background_layer_buf, binfo->scrnx, binfo->scrny, -1);
   layer_setbuf(layer_mouse, mouse_layer_buf, 16, 16, 99);
   layer_setbuf(layer_win, window_layer_buf, 160, 52, -1);
@@ -340,7 +340,7 @@ hari_main(void)
 
   // console task
   Layer *console_layer = layer_alloc(layerctl);
-  uint8_t *console_layer_buf = (uint8_t *) memman_alloc_4k(mem_manager, 256 * 165);
+  uint8_t *console_layer_buf = (uint8_t *) memman_alloc_4k(memman, 256 * 165);
   layer_setbuf(console_layer, console_layer_buf, 256, 165, -1);
   make_window8(console_layer_buf, 256, 165, "console", FALSE);
   make_textbox8(console_layer, 8, 28, 240, 128, COLOR_BLACK);
@@ -349,7 +349,7 @@ hari_main(void)
   // |---------------------|<- int32_t(4 byte) ->|
   // ^                     ^                     ^
   // ESP                   ESP+4                 End of the segment
-  console_task->tss.esp = memman_alloc_4k(mem_manager, 64 * 1024) + 64 * 1024 - 8;
+  console_task->tss.esp = memman_alloc_4k(memman, 64 * 1024) + 64 * 1024 - 8;
   console_task->tss.eip = (int32_t) &console_task_main;
   console_task->tss.es = 1 * 8;
   console_task->tss.cs = 2 * 8;
@@ -390,7 +390,7 @@ hari_main(void)
   sprintf(s0, "(%d, %d)", mx, my);
   putfonts8_asc(background_layer_buf, binfo->scrnx, 0, 0, COLOR_WHITE, s0);
 
-  sprintf(s0, "memory %dMB   free: %dKB", total_mem_size / (1024 * 1024), memman_total(mem_manager) / 1024);
+  sprintf(s0, "memory %dMB   free: %dKB", total_mem_size / (1024 * 1024), memman_total(memman) / 1024);
   putfonts8_asc(background_layer_buf, binfo->scrnx, 0, 32, COLOR_WHITE, s0);
 #endif
 
