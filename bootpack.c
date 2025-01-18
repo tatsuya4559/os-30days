@@ -338,18 +338,17 @@ hari_main(void)
   timer_init(cursor_timer, &fifo, EVENT_CURSOR_ON);
   timer_set_timeout(cursor_timer, 50);
 
-  char s0[20];
+  char s[20];
 #ifdef DEBUG
-  sprintf(s0, "(%d, %d)", mx, my);
-  print_on_layer(layer_back, 0, 0, COLOR_DARK_CYAN, COLOR_WHITE, s0);
+  sprintf(s, "(%d, %d)", mx, my);
+  print_on_layer(layer_back, 0, 0, COLOR_DARK_CYAN, COLOR_WHITE, s);
 
-  sprintf(s0, "memory %dMB   free: %dKB", total_mem_size / (1024 * 1024), memman_total(memman) / 1024);
-  print_on_layer(layer_back, 0, 32, COLOR_DARK_CYAN, COLOR_WHITE, s0);
+  sprintf(s, "memory %dMB   free: %dKB", total_mem_size / (1024 * 1024), memman_total(memman) / 1024);
+  print_on_layer(layer_back, 0, 32, COLOR_DARK_CYAN, COLOR_WHITE, s);
 #endif
 
   layer_refresh(layer_back, 0, 0, binfo->scrnx, 48);
 
-  char s[4];
   bool_t shift_pressed = FALSE;
 
   // forth bit of leds indicates ScallLock
@@ -386,8 +385,8 @@ MAIN_LOOP:
     if (EVENT_KEYBOARD_INPUT <= event && event < EVENT_MOUSE_INPUT) {
       int32_t keycode = event - EVENT_KEYBOARD_INPUT;
 #ifdef DEBUG
-      sprintf(s0, "%x", keycode);
-      print_on_layer(layer_back, 0, 16, COLOR_DARK_CYAN, COLOR_WHITE, s0);
+      sprintf(s, "%x", keycode);
+      print_on_layer(layer_back, 0, 16, COLOR_DARK_CYAN, COLOR_WHITE, s);
 #endif
 
       switch (keycode) {
@@ -486,17 +485,17 @@ MAIN_LOOP:
       int32_t keycode = event - EVENT_MOUSE_INPUT;
       if (mouse_decode(&mouse_decoder, keycode) != 0) {
 #ifdef DEBUG
-        sprintf(s0, "[lcr %d %d]", mouse_decoder.x, mouse_decoder.y);
+        sprintf(s, "[lcr %d %d]", mouse_decoder.x, mouse_decoder.y);
         if ((mouse_decoder.btn & 0x01) != 0) {
-          s0[1] = 'L';
+          s[1] = 'L';
         }
         if ((mouse_decoder.btn & 0x02) != 0) {
-          s0[3] = 'R';
+          s[3] = 'R';
         }
         if ((mouse_decoder.btn & 0x04) != 0) {
-          s0[2] = 'C';
+          s[2] = 'C';
         }
-        print_on_layer(layer_back, 32, 16, COLOR_DARK_CYAN, COLOR_WHITE, s0);
+        print_on_layer(layer_back, 32, 16, COLOR_DARK_CYAN, COLOR_WHITE, s);
 #endif
 
         // move mouse cursor
