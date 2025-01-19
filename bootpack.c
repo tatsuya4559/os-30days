@@ -260,6 +260,49 @@ console_task_main(Layer *layer, uint32_t total_mem_size)
               cursor_y = console_newline(cursor_y, layer);
             }
           }
+        } else if (str_has_prefix(cmdline, "type ")) {
+          char *input_filename = str_to_upper(str_trim_prefix(cmdline, "type "));
+
+          // Search for the file
+          char filename[13];
+          int32_t idx;
+          for (idx = 0; idx < MAX_FILES; idx++) {
+            file_normalized_name(&finfo[idx], filename);
+            if (str_equal(filename, input_filename)) {
+              break;
+            }
+          }
+          bool_t found = idx < MAX_FILES;
+
+          if (found) {
+            print_on_layer(layer, 8, cursor_y, COLOR_BLACK, COLOR_WHITE, filename);
+            cursor_y = console_newline(cursor_y, layer);
+
+            uint32_t size = finfo[idx].size;
+            char *fp = (char *) (finfo[idx].clustno * 512 + 0x003e00 + ADR_DISKIMG);
+
+            // Print the file content
+            cursor_x = 8;
+            for (int32_t p = 0; p < size; p++) {
+              if (fp[p] == '\n') {
+                cursor_x = 8;
+                cursor_y = console_newline(cursor_y, layer);
+                continue;
+              }
+              s[0] = fp[p];
+              s[1] = '\0';
+              print_on_layer(layer, cursor_x, cursor_y, COLOR_BLACK, COLOR_WHITE, s);
+              cursor_x += 8;
+              if (cursor_x == 8 + 240) {
+                cursor_x = 8;
+                cursor_y = console_newline(cursor_y, layer);
+              }
+            }
+          } else {
+            print_on_layer(layer, 8, cursor_y, COLOR_BLACK, COLOR_WHITE, "File not found.");
+            cursor_y = console_newline(cursor_y, layer);
+          }
+          cursor_y = console_newline(cursor_y, layer);
         } else if (!str_equal(cmdline, "")) { // not a command but a string
           print_on_layer(layer, 8, cursor_y, COLOR_BLACK, COLOR_WHITE, "Bad command.");
           cursor_y = console_newline(cursor_y, layer);

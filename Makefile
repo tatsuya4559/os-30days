@@ -36,7 +36,7 @@ haribote.img: ipl.bin haribote.sys
 	mcopy -i $@ haribote.sys ::
 	# Not necessary, just for list files in dir command
 	mcopy -i $@ nasmfunc.asm ::
-	mcopy -i $@ int.c ::
+	mcopy -i $@ fifo.h ::
 
 .PHONY: build
 build: ## Build the OS
