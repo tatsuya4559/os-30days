@@ -19,6 +19,7 @@
 #define MAX_FILES 224
 #define KEYCMD_LED 0xed
 #define FIFO_BUF_SIZE 128
+#define NUM_DISK_SECTORS 2880
 
 // Console width must be a multiple of 8
 // Console height must be a multiple of 16
@@ -77,12 +78,28 @@ file_readfat(uint8_t *fat, uint8_t *img)
 {
   // Read 3 bytes and decompress to 2 bytes like below:
   // 1A 2B 3C -> B1A 3C2
-  for (int32_t i = 0, j = 0; i < 2880; i += 2) {
+  for (int32_t i = 0, j = 0; i < NUM_DISK_SECTORS; i += 2) {
     fat[i + 0] = (img[j + 0]) | (img[j + 1] << 8) & 0xfff;
     fat[i + 1] = (img[j + 1] >> 4) | (img[j + 2] << 4) & 0xfff;
     j += 3;
   }
 }
+
+static
+void
+file_load(uint16_t clustno, uint32_t size, uint8_t *buf, uint8_t *fat, uint8_t *img)
+{
+  while (size > 0) {
+    uint32_t batch_size = size > 512 ? 512 : size;
+    for (uint32_t i = 0; i < batch_size; i++) {
+      buf[i] = img[clustno * 512 + i];
+    }
+    size -= batch_size;
+    buf += batch_size;
+    clustno = fat[clustno];
+  }
+}
+
 enum {
   EVENT_CURSOR_OFF,
   EVENT_CURSOR_ON,
@@ -174,7 +191,7 @@ console_task_main(Layer *layer, uint32_t total_mem_size)
   MemoryManager *memman = (MemoryManager *) MEMMAN_ADDR;
   FileInfo *finfo = (FileInfo *) (ADR_DISKIMG + 0x002600);
 
-  uint8_t *fat = (uint8_t *) memman_alloc_4k(memman, 2880 * 4);
+  uint8_t *fat = (uint8_t *) memman_alloc_4k(memman, NUM_DISK_SECTORS * 4);
   file_readfat(fat, (uint8_t *) (ADR_DISKIMG + 0x000200));
 
   int32_t fifo_buf[FIFO_BUF_SIZE];
@@ -300,18 +317,18 @@ console_task_main(Layer *layer, uint32_t total_mem_size)
             print_on_layer(layer, 8, cursor_y, COLOR_BLACK, COLOR_WHITE, filename);
             cursor_y = console_newline(cursor_y, layer);
 
-            uint32_t size = finfo[idx].size;
-            char *fp = (char *) (finfo[idx].clustno * 512 + 0x003e00 + ADR_DISKIMG);
+            uint8_t *buf = (uint8_t *) memman_alloc_4k(memman, finfo[idx].size);
+            file_load(finfo[idx].clustno, finfo[idx].size, buf, fat, (uint8_t *) (ADR_DISKIMG + 0x003e00));
 
             // Print the file content
             cursor_x = 8;
-            for (int32_t p = 0; p < size; p++) {
-              if (fp[p] == '\n') {
+            for (int32_t p = 0; p < finfo[idx].size; p++) {
+              if (buf[p] == '\n') {
                 cursor_x = 8;
                 cursor_y = console_newline(cursor_y, layer);
                 continue;
               }
-              s[0] = fp[p];
+              s[0] = buf[p];
               s[1] = '\0';
               print_on_layer(layer, cursor_x, cursor_y, COLOR_BLACK, COLOR_WHITE, s);
               cursor_x += 8;
@@ -320,6 +337,7 @@ console_task_main(Layer *layer, uint32_t total_mem_size)
                 cursor_y = console_newline(cursor_y, layer);
               }
             }
+            memman_free_4k(memman, (uint32_t) buf, finfo[idx].size);
           } else {
             print_on_layer(layer, 8, cursor_y, COLOR_BLACK, COLOR_WHITE, "File not found.");
             cursor_y = console_newline(cursor_y, layer);
