@@ -328,6 +328,14 @@ console_task_main(Layer *layer, uint32_t total_mem_size)
                 cursor_y = console_newline(cursor_y, layer);
                 continue;
               }
+              if (buf[p] == '\t') {
+                const int32_t tabstop = 8;
+                do {
+                  print_on_layer(layer, cursor_x, cursor_y, COLOR_BLACK, COLOR_WHITE, " ");
+                  cursor_x += 8;
+                } while ((cursor_x / 8) % tabstop != 1);
+                continue;
+              }
               s[0] = buf[p];
               s[1] = '\0';
               print_on_layer(layer, cursor_x, cursor_y, COLOR_BLACK, COLOR_WHITE, s);
