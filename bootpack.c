@@ -71,6 +71,18 @@ file_normalized_name(const FileInfo *finfo, char *buf)
   }
 }
 
+static
+void
+file_readfat(uint8_t *fat, uint8_t *img)
+{
+  // Read 3 bytes and decompress to 2 bytes like below:
+  // 1A 2B 3C -> B1A 3C2
+  for (int32_t i = 0, j = 0; i < 2880; i += 2) {
+    fat[i + 0] = (img[j + 0]) | (img[j + 1] << 8) & 0xfff;
+    fat[i + 1] = (img[j + 1] >> 4) | (img[j + 2] << 4) & 0xfff;
+    j += 3;
+  }
+}
 enum {
   EVENT_CURSOR_OFF,
   EVENT_CURSOR_ON,
@@ -161,6 +173,9 @@ console_task_main(Layer *layer, uint32_t total_mem_size)
   Task *self = task_now();
   MemoryManager *memman = (MemoryManager *) MEMMAN_ADDR;
   FileInfo *finfo = (FileInfo *) (ADR_DISKIMG + 0x002600);
+
+  uint8_t *fat = (uint8_t *) memman_alloc_4k(memman, 2880 * 4);
+  file_readfat(fat, (uint8_t *) (ADR_DISKIMG + 0x000200));
 
   int32_t fifo_buf[FIFO_BUF_SIZE];
   fifo_init(&self->fifo, FIFO_BUF_SIZE, fifo_buf, self);
