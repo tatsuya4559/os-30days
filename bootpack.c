@@ -20,6 +20,13 @@
 #define KEYCMD_LED 0xed
 #define FIFO_BUF_SIZE 128
 
+// Console width must be a multiple of 8
+// Console height must be a multiple of 16
+/* #define CONSOLE_WIDTH 240 */
+/* #define CONSOLE_HEIGHT 128 */
+#define CONSOLE_WIDTH 632
+#define CONSOLE_HEIGHT 320
+
 typedef struct {
   uint8_t cyls, leds, vmode, reserve;
   short scrnx, scrny;
@@ -128,21 +135,21 @@ static
 int32_t
 console_newline(int32_t cursor_y, Layer *layer)
 {
-  if (cursor_y < 28 + 112) {
+  if (cursor_y < 28 + CONSOLE_HEIGHT - 16) {
     cursor_y += 16;
   } else {
     // scroll
-    for (int32_t y = 28; y < 28 + 112; y++) {
-      for (int32_t x = 8; x < 8 + 240; x++) {
+    for (int32_t y = 28; y < 28 + CONSOLE_HEIGHT - 16; y++) {
+      for (int32_t x = 8; x < 8 + CONSOLE_WIDTH; x++) {
         layer->buf[x + y * layer->bxsize] = layer->buf[x + (y + 16) * layer->bxsize];
       }
     }
-    for (int32_t y = 28 + 112; y < 28 + 128; y++) {
-      for (int32_t x = 8; x < 8 + 240; x++) {
+    for (int32_t y = 28 + CONSOLE_HEIGHT - 16; y < 28 + CONSOLE_HEIGHT; y++) {
+      for (int32_t x = 8; x < 8 + CONSOLE_WIDTH; x++) {
         layer->buf[x + y * layer->bxsize] = COLOR_BLACK;
       }
     }
-    layer_refresh(layer, 8, 28, 8 + 240, 28 + 128);
+    layer_refresh(layer, 8, 28, 8 + CONSOLE_WIDTH, 28 + CONSOLE_HEIGHT);
   }
   return cursor_y;
 }
@@ -232,12 +239,12 @@ console_task_main(Layer *layer, uint32_t total_mem_size)
           cursor_y = console_newline(cursor_y, layer);
           cursor_y = console_newline(cursor_y, layer);
         } else if (str_equal(cmdline, "cls")) { // clear screen
-          for (int32_t y = 28; y < 28 + 128; y++) {
-            for (int32_t x = 8; x < 8 + 240; x++) {
+          for (int32_t y = 28; y < 28 + CONSOLE_HEIGHT; y++) {
+            for (int32_t x = 8; x < 8 + CONSOLE_WIDTH; x++) {
               layer->buf[x + y * layer->bxsize] = COLOR_BLACK;
             }
           }
-          layer_refresh(layer, 8, 28, 8 + 240, 28 + 128);
+          layer_refresh(layer, 8, 28, 8 + CONSOLE_WIDTH, 28 + CONSOLE_HEIGHT);
           cursor_y = 28;
         } else if (str_equal(cmdline, "dir")) {
           for (int32_t i = 0; i < MAX_FILES; i++) {
@@ -293,7 +300,7 @@ console_task_main(Layer *layer, uint32_t total_mem_size)
               s[1] = '\0';
               print_on_layer(layer, cursor_x, cursor_y, COLOR_BLACK, COLOR_WHITE, s);
               cursor_x += 8;
-              if (cursor_x == 8 + 240) {
+              if (cursor_x == 8 + CONSOLE_WIDTH) {
                 cursor_x = 8;
                 cursor_y = console_newline(cursor_y, layer);
               }
@@ -314,7 +321,7 @@ console_task_main(Layer *layer, uint32_t total_mem_size)
         cursor_x = 16;
         break;
       default:
-        if (cursor_x < 240) {
+        if (cursor_x < CONSOLE_WIDTH) {
           s[0] = c;
           s[1] = '\0';
           cmdline[cursor_x / 8 - 2] = c;
@@ -397,10 +404,10 @@ hari_main(void)
 
   // console task
   Layer *console_layer = layer_alloc(layerctl);
-  uint8_t *console_layer_buf = (uint8_t *) memman_alloc_4k(memman, 256 * 165);
-  layer_setbuf(console_layer, console_layer_buf, 256, 165, -1);
-  make_window8(console_layer_buf, 256, 165, "console", FALSE);
-  make_textbox8(console_layer, 8, 28, 240, 128, COLOR_BLACK);
+  uint8_t *console_layer_buf = (uint8_t *) memman_alloc_4k(memman, (CONSOLE_WIDTH + 16) * (CONSOLE_HEIGHT + 37));
+  layer_setbuf(console_layer, console_layer_buf, CONSOLE_WIDTH + 16, CONSOLE_HEIGHT + 37, -1);
+  make_window8(console_layer_buf, CONSOLE_WIDTH + 16, CONSOLE_HEIGHT + 37, "console", FALSE);
+  make_textbox8(console_layer, 8, 28, CONSOLE_WIDTH, CONSOLE_HEIGHT, COLOR_BLACK);
   Task *console_task = task_alloc();
   // Substract 8 bytes from the end of the allocated memory to store an int32_t argument.
   // |---------------------|<- int32_t(4 byte) ->|
