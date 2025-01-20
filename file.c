@@ -1,22 +1,24 @@
 #include "strutil.h"
 #include "file.h"
 
+#define MAX_FILES 224
+
 void
-file_normalized_name(const FileInfo *finfo, char *buf)
+file_normalized_name(const FileInfo *file, char *buf)
 {
   int32_t idx = 0;
   for (int32_t i = 0; i < 8; i++) {
-    if (finfo->name[i] == ' ') {
+    if (file->name[i] == ' ') {
       break;
     }
-    buf[idx++] = finfo->name[i];
+    buf[idx++] = file->name[i];
   }
   buf[idx++] = '.';
   for (int32_t i = 0; i < 3; i++) {
-    if (finfo->ext[i] == ' ') {
+    if (file->ext[i] == ' ') {
       break;
     }
-    buf[idx++] = finfo->ext[i];
+    buf[idx++] = file->ext[i];
   }
   buf[idx] = '\0';
   if (str_equal(buf, ".")) {
@@ -48,4 +50,43 @@ file_load(uint16_t clustno, uint32_t size, uint8_t *buf, uint8_t *fat, uint8_t *
     buf += batch_size;
     clustno = fat[clustno];
   }
+}
+
+FileInfo *
+next_file(FileInfoIterator *iter)
+{
+  if (iter->index >= MAX_FILES) {
+    return NULL;
+  }
+  for (;;) {
+    FileInfo *next = &iter->files[iter->index++];
+    if (next->name[0] == 0x00) {
+      // If the first byte of the name is 0x00, there are no more files.
+      return NULL;
+    }
+    if (next->name[0] == 0xe5) {
+      // If the first byte of the name is 0xe5, the file is deleted.
+      continue;
+    }
+    return next;
+  }
+  return NULL;
+}
+
+FileInfo *
+search_file(FileInfo *files, const char *filename)
+{
+  char name[13];
+  FileInfoIterator iter = {
+    .files = files,
+    .index = 0,
+  };
+  FileInfo *file;
+  while ((file = next_file(&iter)) != NULL) {
+    file_normalized_name(file, name);
+    if (str_equal(name, filename)) {
+      return file;
+    }
+  }
+  return NULL;
 }

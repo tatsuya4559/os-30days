@@ -18,6 +18,13 @@ typedef struct {
  * @param buf buffer to store the normalized filename.
  *        The buffer must be at least 13 bytes long.
  */
-void file_normalized_name(const FileInfo *finfo, char *buf);
+void file_normalized_name(const FileInfo *file, char *buf);
 void file_readfat(uint8_t *fat, uint8_t *img);
 void file_load(uint16_t clustno, uint32_t size, uint8_t *buf, uint8_t *fat, uint8_t *img);
+
+typedef struct {
+  FileInfo *files;
+  int32_t index;
+} FileInfoIterator;
+FileInfo *next_file(FileInfoIterator *iter);
+FileInfo *search_file(FileInfo *files, const char *filename);

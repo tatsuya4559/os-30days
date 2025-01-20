@@ -9,7 +9,6 @@
 #include "console.h"
 
 #define ADR_DISKIMG  0x00100000
-#define MAX_FILES 224
 #define CMDLINE_LEN 30
 
 FileInfo *finfo = (FileInfo *) (ADR_DISKIMG + 0x002600);
@@ -71,52 +70,6 @@ cons_putchar(Console *cons, char c, bool_t move_cursor)
   }
 }
 
-typedef struct {
-  FileInfo *finfo;
-  int32_t index;
-} FileInfoIterator;
-
-static
-FileInfo *
-next_file(FileInfoIterator *iter)
-{
-  if (iter->index >= MAX_FILES) {
-    return NULL;
-  }
-  for (;;) {
-    FileInfo *next = &iter->finfo[iter->index++];
-    if (next->name[0] == 0x00) {
-      // If the first byte of the name is 0x00, there are no more files.
-      return NULL;
-    }
-    if (next->name[0] == 0xe5) {
-      // If the first byte of the name is 0xe5, the file is deleted.
-      continue;
-    }
-    return next;
-  }
-  return NULL;
-}
-
-static
-FileInfo *
-search_file(FileInfo *finfo, const char *filename)
-{
-  char name[13];
-  FileInfoIterator iter = {
-    .finfo = finfo,
-    .index = 0,
-  };
-  FileInfo *file;
-  while ((file = next_file(&iter)) != NULL) {
-    file_normalized_name(file, name);
-    if (str_equal(name, filename)) {
-      return file;
-    }
-  }
-  return NULL;
-}
-
 static
 void
 cmd_mem(Console *cons, uint32_t total_mem_size)
@@ -151,7 +104,7 @@ cmd_dir(Console *cons)
 {
   char s[CMDLINE_LEN];
   FileInfoIterator iter = {
-    .finfo = finfo,
+    .files = finfo,
     .index = 0,
   };
   FileInfo *file;
