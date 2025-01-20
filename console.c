@@ -1,9 +1,11 @@
+#include "dsctbl.h"
 #include "graphic.h"
 #include "mtask.h"
 #include "file.h"
 #include "nasmfunc.h"
 #include "iolib.h"
 #include "strutil.h"
+#include "dsctbl.h"
 #include "console.h"
 
 #define ADR_DISKIMG  0x00100000
@@ -84,6 +86,7 @@ console_task_main(Layer *layer, uint32_t total_mem_size)
   Task *self = task_now();
   MemoryManager *memman = (MemoryManager *) MEMMAN_ADDR;
   FileInfo *finfo = (FileInfo *) (ADR_DISKIMG + 0x002600);
+  SegmentDescriptor *gdt = (SegmentDescriptor *) ADR_GDT;
 
   uint8_t *fat = (uint8_t *) memman_alloc_4k(memman, NUM_DISK_SECTORS * 4);
   file_readfat(fat, (uint8_t *) (ADR_DISKIMG + 0x000200));
@@ -227,6 +230,20 @@ console_task_main(Layer *layer, uint32_t total_mem_size)
           } else {
             print_on_layer(layer, 8, cursor_y, COLOR_BLACK, COLOR_WHITE, "File not found.");
             cursor_y = console_newline(cursor_y, layer);
+          }
+          cursor_y = console_newline(cursor_y, layer);
+        } else if (str_equal(cmdline, "hlt")) {
+          FileInfo *hlt_file = search_file(finfo, "HLT.HRB");
+          if (hlt_file == NULL) {
+            print_on_layer(layer, 8, cursor_y, COLOR_BLACK, COLOR_WHITE, "hlt command not found.");
+            cursor_y = console_newline(cursor_y, layer);
+          } else {
+            uint8_t *buf = (uint8_t *) memman_alloc_4k(memman, hlt_file->size);
+            file_load(hlt_file->clustno, hlt_file->size, buf, fat, (uint8_t *) (ADR_DISKIMG + 0x003e00));
+            // We use 1003 segment since 1~2 are used in dsctbl.c and 3~1002 in mtask.c
+            set_segmdesc(gdt + 1003, hlt_file->size - 1, (uint32_t) buf, AR_CODE32_ER);
+            _farjmp(0, 1003 * 8);
+            memman_free_4k(memman, (uint32_t) buf, hlt_file->size);
           }
           cursor_y = console_newline(cursor_y, layer);
         } else if (!str_equal(cmdline, "")) { // not a command but a string

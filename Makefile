@@ -9,6 +9,9 @@ CFLAGS := -march=i486 -m32 -fno-pic -nostdlib
 C_SRC := iolib.c graphic.c dsctbl.c int.c fifo.c keyboard.c mouse.c memory.c layer.c timer.c mtask.c strutil.c file.c console.c
 C_OBJ := $(patsubst %.c,%.o,$(C_SRC))
 
+hlt.hrb: hlt.asm
+	nasm $< -o $@ -l hlt.lst
+
 asmhead.bin: asmhead.asm
 	nasm $< -o $@ -l asmhead.lst
 
@@ -31,12 +34,13 @@ haribote.sys: asmhead.bin bootpack.hrb
 ipl.bin: ipl.asm
 	nasm $< -o $@ -l ipl.lst
 
-haribote.img: ipl.bin haribote.sys
+haribote.img: ipl.bin haribote.sys hlt.hrb
 	mformat -f 1440 -C -B ipl.bin -i $@
 	mcopy -i $@ haribote.sys ::
 	# Not necessary, just for list files in dir command
 	mcopy -i $@ nasmfunc.asm ::
 	mcopy -i $@ fifo.h ::
+	mcopy -i $@ hlt.hrb ::
 
 .PHONY: build
 build: ## Build the OS

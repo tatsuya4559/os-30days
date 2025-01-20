@@ -4,7 +4,6 @@
 #define  LIMIT_BOTPAK  0x0007ffff
 #define  ADR_BOTPAK    0x00280000
 #define  ADR_IDT       0x0026f800
-#define  AR_CODE32_ER  0x409a
 #define  AR_INTGATE32  0x008e
 
 typedef struct {

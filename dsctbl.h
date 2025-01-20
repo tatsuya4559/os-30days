@@ -3,6 +3,7 @@
 #include "types.h"
 
 #define  ADR_GDT       0x00270000
+#define  AR_CODE32_ER  0x409a
 
 typedef struct {
   short limit_low, base_low;
