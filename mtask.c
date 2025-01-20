@@ -96,9 +96,6 @@ task_alloc(void)
     if (taskctl->tasks0[i].status == TASK_UNINITIALIZED) {
       Task *task = &taskctl->tasks0[i];
       task->status = TASK_ALLOCATED;
-  /* int32_t task_b_esp = memman_alloc_4k(mem_manager, 64 * 1024) + 64 * 1024 - 8; */
-      /* task->tss.eip = (int32_t) &task_b_main; */
-      /* task->tss.esp = task_b_esp; */
       task->tss.eflags = 0x00000202; // IF = 1
       task->tss.eax = 0;
       task->tss.ecx = 0;
