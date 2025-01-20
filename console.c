@@ -74,7 +74,6 @@ static
 void
 cmd_mem(Console *cons, uint32_t total_mem_size)
 {
-  MemoryManager *memman = (MemoryManager *) MEMMAN_ADDR;
   char s[CMDLINE_LEN];
   sprintf(s, "total %dMB", total_mem_size / (1024 * 1024));
   print_on_layer(cons->layer, 8, cons->cursor_y, COLOR_BLACK, COLOR_WHITE, s);
@@ -124,22 +123,22 @@ void
 cmd_type(Console *cons, uint8_t *fat, char *cmdline)
 {
   char *filename = str_to_upper(str_trim_prefix(cmdline, "type "));
-  FileInfo *target_file = search_file(finfo, filename);
+  FileInfo *file = search_file(finfo, filename);
   char s[CMDLINE_LEN];
 
-  if (target_file != NULL) {
+  if (file != NULL) {
     print_on_layer(cons->layer, 8, cons->cursor_y, COLOR_BLACK, COLOR_WHITE, filename);
     cons_newline(cons);
 
-    uint8_t *buf = (uint8_t *) memman_alloc_4k(memman, target_file->size);
-    file_load(target_file->clustno, target_file->size, buf, fat, (uint8_t *) (ADR_DISKIMG + 0x003e00));
+    uint8_t *buf = (uint8_t *) memman_alloc_4k(memman, file->size);
+    file_load(file->clustno, file->size, buf, fat, (uint8_t *) (ADR_DISKIMG + 0x003e00));
 
     // Print the file content
     cons->cursor_x = 8;
-    for (int32_t p = 0; p < target_file->size; p++) {
+    for (int32_t p = 0; p < file->size; p++) {
       cons_putchar(cons, buf[p], TRUE);
     }
-    memman_free_4k(memman, (uint32_t) buf, target_file->size);
+    memman_free_4k(memman, (uint32_t) buf, file->size);
   } else {
     print_on_layer(cons->layer, 8, cons->cursor_y, COLOR_BLACK, COLOR_WHITE, "File not found.");
     cons_newline(cons);
@@ -151,17 +150,17 @@ static
 void
 cmd_hlt(Console *cons, uint8_t *fat)
 {
-  FileInfo *hlt_file = search_file(finfo, "HLT.HRB");
-  if (hlt_file == NULL) {
+  FileInfo *binary = search_file(finfo, "HLT.HRB");
+  if (binary == NULL) {
     print_on_layer(cons->layer, 8, cons->cursor_y, COLOR_BLACK, COLOR_WHITE, "hlt command not found.");
     cons_newline(cons);
   } else {
-    uint8_t *buf = (uint8_t *) memman_alloc_4k(memman, hlt_file->size);
-    file_load(hlt_file->clustno, hlt_file->size, buf, fat, (uint8_t *) (ADR_DISKIMG + 0x003e00));
+    uint8_t *buf = (uint8_t *) memman_alloc_4k(memman, binary->size);
+    file_load(binary->clustno, binary->size, buf, fat, (uint8_t *) (ADR_DISKIMG + 0x003e00));
     // We use 1003 segment since 1~2 are used in dsctbl.c and 3~1002 in mtask.c
-    set_segmdesc(gdt + 1003, hlt_file->size - 1, (uint32_t) buf, AR_CODE32_ER);
+    set_segmdesc(gdt + 1003, binary->size - 1, (uint32_t) buf, AR_CODE32_ER);
     _farjmp(0, 1003 * 8);
-    memman_free_4k(memman, (uint32_t) buf, hlt_file->size);
+    memman_free_4k(memman, (uint32_t) buf, binary->size);
   }
   cons_newline(cons);
 }
@@ -174,9 +173,9 @@ cons_run_cmd(Console *cons, char *cmdline, uint32_t total_mem_size, uint8_t *fat
     cmd_mem(cons, total_mem_size);
   } else if (str_equal(cmdline, "cls")) { // clear screen
     cmd_cls(cons);
-  } else if (str_equal(cmdline, "dir")) {
+  } else if (str_equal(cmdline, "dir")) { // ls
     cmd_dir(cons);
-  } else if (str_has_prefix(cmdline, "type ")) {
+  } else if (str_has_prefix(cmdline, "type ")) { // cat
     cmd_type(cons, fat, cmdline);
   } else if (str_equal(cmdline, "hlt")) {
     cmd_hlt(cons, fat);
