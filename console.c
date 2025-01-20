@@ -9,6 +9,33 @@
 #define ADR_DISKIMG  0x00100000
 #define MAX_FILES 224
 
+typedef struct {
+  FileInfo *finfo;
+  int32_t index;
+} FileInfoIterator;
+
+static
+FileInfo *
+next_file(FileInfoIterator *iter)
+{
+  if (iter->index >= MAX_FILES) {
+    return NULL;
+  }
+  for (;;) {
+    FileInfo *next = &iter->finfo[iter->index++];
+    if (next->name[0] == 0x00) {
+      // If the first byte of the name is 0x00, there are no more files.
+      return NULL;
+    }
+    if (next->name[0] == 0xe5) {
+      // If the first byte of the name is 0xe5, the file is deleted.
+      continue;
+    }
+    return next;
+  }
+  return NULL;
+}
+
 static
 int32_t
 console_newline(int32_t cursor_y, Layer *layer)
@@ -30,6 +57,25 @@ console_newline(int32_t cursor_y, Layer *layer)
     layer_refresh(layer, 8, 28, 8 + CONSOLE_WIDTH, 28 + CONSOLE_HEIGHT);
   }
   return cursor_y;
+}
+
+static
+FileInfo *
+search_file(FileInfo *finfo, const char *filename)
+{
+  char name[13];
+  FileInfoIterator iter = {
+    .finfo = finfo,
+    .index = 0,
+  };
+  FileInfo *file;
+  while ((file = next_file(&iter)) != NULL) {
+    file_normalized_name(file, name);
+    if (str_equal(name, filename)) {
+      return file;
+    }
+  }
+  return NULL;
 }
 
 void
@@ -127,50 +173,34 @@ console_task_main(Layer *layer, uint32_t total_mem_size)
           layer_refresh(layer, 8, 28, 8 + CONSOLE_WIDTH, 28 + CONSOLE_HEIGHT);
           cursor_y = 28;
         } else if (str_equal(cmdline, "dir")) {
-          for (int32_t i = 0; i < MAX_FILES; i++) {
-            if (finfo[i].name == 0x00) {
-              // If the first byte of the name is 0x00, there are no more files.
-              break;
-            }
-            if (finfo[i].name == 0xe5) {
-              // If the first byte of the name is 0xe5, the file is deleted.
-              continue;
-            }
-            if (finfo[i].type == 0x00 || finfo[i].type == 0x20) {
+          FileInfoIterator iter = {
+            .finfo = finfo,
+            .index = 0,
+          };
+          FileInfo *file;
+          while ((file = next_file(&iter)) != NULL) {
+            if (file->type == 0x00 || file->type == 0x20) {
               char filename[13];
-              file_normalized_name(&finfo[i], filename);
-              if (str_equal(filename, "")) {
-                continue;
-              }
-              sprintf(s, "%s %d", filename, finfo[i].size);
+              file_normalized_name(file, filename);
+              sprintf(s, "%s %d", filename, file->size);
               print_on_layer(layer, 8, cursor_y, COLOR_BLACK, COLOR_WHITE, s);
               cursor_y = console_newline(cursor_y, layer);
             }
           }
         } else if (str_has_prefix(cmdline, "type ")) {
-          char *input_filename = str_to_upper(str_trim_prefix(cmdline, "type "));
+          char *filename = str_to_upper(str_trim_prefix(cmdline, "type "));
+          FileInfo *target_file = search_file(finfo, filename);
 
-          // Search for the file
-          char filename[13];
-          int32_t idx;
-          for (idx = 0; idx < MAX_FILES; idx++) {
-            file_normalized_name(&finfo[idx], filename);
-            if (str_equal(filename, input_filename)) {
-              break;
-            }
-          }
-          bool_t found = idx < MAX_FILES;
-
-          if (found) {
+          if (target_file != NULL) {
             print_on_layer(layer, 8, cursor_y, COLOR_BLACK, COLOR_WHITE, filename);
             cursor_y = console_newline(cursor_y, layer);
 
-            uint8_t *buf = (uint8_t *) memman_alloc_4k(memman, finfo[idx].size);
-            file_load(finfo[idx].clustno, finfo[idx].size, buf, fat, (uint8_t *) (ADR_DISKIMG + 0x003e00));
+            uint8_t *buf = (uint8_t *) memman_alloc_4k(memman, target_file->size);
+            file_load(target_file->clustno, target_file->size, buf, fat, (uint8_t *) (ADR_DISKIMG + 0x003e00));
 
             // Print the file content
             cursor_x = 8;
-            for (int32_t p = 0; p < finfo[idx].size; p++) {
+            for (int32_t p = 0; p < target_file->size; p++) {
               if (buf[p] == '\n') {
                 cursor_x = 8;
                 cursor_y = console_newline(cursor_y, layer);
@@ -193,7 +223,7 @@ console_task_main(Layer *layer, uint32_t total_mem_size)
                 cursor_y = console_newline(cursor_y, layer);
               }
             }
-            memman_free_4k(memman, (uint32_t) buf, finfo[idx].size);
+            memman_free_4k(memman, (uint32_t) buf, target_file->size);
           } else {
             print_on_layer(layer, 8, cursor_y, COLOR_BLACK, COLOR_WHITE, "File not found.");
             cursor_y = console_newline(cursor_y, layer);
